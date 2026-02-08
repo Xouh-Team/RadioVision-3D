@@ -122,8 +122,8 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
         const d = size.z * scaleFactor;
         onBoundsCalculated({
           height: h, width: w, depth: d,
-          // Right lung position: 68% height, 10% right, slightly forward
-          tumorPosition: [w * 0.10, h * 0.68, d * 0.05],
+          // Right lung position: 68% height, 15% right, slightly forward
+          tumorPosition: [w * 0.15, h * 0.68, d * 0.05],
         });
       }
     }, undefined, (err) => console.error('GLB error:', err));
@@ -213,16 +213,28 @@ function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated })
   );
 }
 
+/* ── Responsive hook ── */
+function useResponsive() {
+  const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  useEffect(() => {
+    const handler = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  // mobile: <640, tablet: 640-1024, desktop: >1024
+  return { isMobile: size.w < 640, isTablet: size.w >= 640 && size.w < 1024, isDesktop: size.w >= 1024, width: size.w, height: size.h };
+}
+
 /* ── Stat ── */
-function Stat({label,value,unit,trend,color}) {
+function Stat({label,value,unit,trend,color,compact}) {
   return (
-    <div style={{background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:'12px',padding:'14px 16px'}}>
-      <div style={{fontSize:'10px',textTransform:'uppercase',letterSpacing:'0.1em',color:C.textMuted,marginBottom:'5px',fontFamily:'monospace'}}>{label}</div>
-      <div style={{display:'flex',alignItems:'baseline',gap:'4px'}}>
-        <span style={{fontSize:'24px',fontWeight:700,color:color||C.text}}>{value}</span>
-        <span style={{fontSize:'11px',color:C.textMuted,fontFamily:'monospace'}}>{unit}</span>
+    <div style={{background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:compact?'8px':'12px',padding:compact?'10px 12px':'14px 16px',flex:compact?1:undefined,minWidth:compact?0:undefined}}>
+      <div style={{fontSize:compact?'8px':'10px',textTransform:'uppercase',letterSpacing:'0.1em',color:C.textMuted,marginBottom:compact?'3px':'5px',fontFamily:'monospace'}}>{label}</div>
+      <div style={{display:'flex',alignItems:'baseline',gap:'3px'}}>
+        <span style={{fontSize:compact?'18px':'24px',fontWeight:700,color:color||C.text}}>{value}</span>
+        <span style={{fontSize:compact?'9px':'11px',color:C.textMuted,fontFamily:'monospace'}}>{unit}</span>
       </div>
-      {trend&&<div style={{marginTop:'3px',fontSize:'11px',color:trend.startsWith('-')?C.positive:C.warning,fontFamily:'monospace'}}>{trend}</div>}
+      {trend&&<div style={{marginTop:'2px',fontSize:compact?'9px':'11px',color:trend.startsWith('-')?C.positive:C.warning,fontFamily:'monospace'}}>{trend}</div>}
     </div>
   );
 }
@@ -237,6 +249,8 @@ export default function App() {
   const [tumorPos,setTumorPos]=useState([0,1.5,0.1]);
   const ivRef=useRef(null);
   const fileRef=useRef(null);
+  const {isMobile,isTablet,isDesktop}=useResponsive();
+  const isVertical = !isDesktop; // mobile & tablet: layout vertical (3D top, panel bottom)
 
   const d=TUMOR_DATA[step];
   const vol=(4.2*d.size).toFixed(1);
@@ -259,32 +273,39 @@ export default function App() {
   const handleDrop=(e)=>{e.preventDefault();setDragOver(false);if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);};
   const onBoundsCalculated=useCallback((bounds)=>{setTumorPos(bounds.tumorPosition);setModelStatus('loaded');},[]);
 
+  const compactStats = isVertical;
+
   return (
     <div style={{width:'100vw',height:'100vh',background:C.bg,color:C.text,fontFamily:"-apple-system,'Segoe UI',sans-serif",display:'flex',flexDirection:'column',overflow:'hidden'}}>
-      {/* Header */}
-      <header style={{padding:'12px 20px',borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'rgba(5,10,18,0.85)',backdropFilter:'blur(12px)',zIndex:10}}>
-        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+
+      {/* ── Header ── */}
+      <header style={{padding:isMobile?'10px 14px':'12px 20px',borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'rgba(5,10,18,0.85)',backdropFilter:'blur(12px)',zIndex:10}}>
+        <div style={{display:'flex',alignItems:'center',gap:isMobile?'8px':'10px'}}>
           <div style={{width:'32px',height:'32px',borderRadius:'8px',background:`linear-gradient(135deg,${C.accent},#4a90d9)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',color:'#fff'}}>◎</div>
           <div>
             <div style={{fontSize:'14px',fontWeight:600}}>RadioVision 3D</div>
-            <div style={{fontSize:'10px',color:C.textMuted,fontFamily:'monospace'}}>Visualisation tumorale</div>
+            {!isMobile&&<div style={{fontSize:'10px',color:C.textMuted,fontFamily:'monospace'}}>Visualisation tumorale</div>}
           </div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-          <button onClick={()=>fileRef.current?.click()} style={{padding:'6px 14px',borderRadius:'8px',border:`1px solid ${C.accent}`,background:modelStatus==='loaded'?C.accentDim:'transparent',color:C.accent,cursor:'pointer',fontSize:'11px',fontFamily:'monospace'}}>
-            {modelStatus==='loaded'?'✓ Modèle chargé':modelStatus==='loading'?'⏳ Chargement...':'📂 Charger .glb'}
+        <div style={{display:'flex',alignItems:'center',gap:isMobile?'6px':'10px'}}>
+          <button onClick={()=>fileRef.current?.click()} style={{padding:isMobile?'5px 10px':'6px 14px',borderRadius:'8px',border:`1px solid ${C.accent}`,background:modelStatus==='loaded'?C.accentDim:'transparent',color:C.accent,cursor:'pointer',fontSize:'11px',fontFamily:'monospace'}}>
+            {modelStatus==='loaded'?'✓ Chargé':modelStatus==='loading'?'⏳...':'📂 .glb'}
           </button>
           <input ref={fileRef} type="file" accept=".glb,.gltf" style={{display:'none'}} onChange={(e)=>e.target.files[0]&&handleFile(e.target.files[0])}/>
-          <div style={{display:'flex',alignItems:'center',gap:'7px',padding:'4px 12px',borderRadius:'16px',background:C.accentDim,border:'1px solid rgba(6,214,160,0.2)'}}>
-            <div style={{width:'6px',height:'6px',borderRadius:'50%',background:C.accent,boxShadow:`0 0 8px ${C.accent}`}}/>
-            <span style={{fontSize:'11px',color:C.accent,fontFamily:'monospace'}}>Patient #2847</span>
-          </div>
+          {!isMobile&&(
+            <div style={{display:'flex',alignItems:'center',gap:'7px',padding:'4px 12px',borderRadius:'16px',background:C.accentDim,border:'1px solid rgba(6,214,160,0.2)'}}>
+              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:C.accent,boxShadow:`0 0 8px ${C.accent}`}}/>
+              <span style={{fontSize:'11px',color:C.accent,fontFamily:'monospace'}}>Patient #2847</span>
+            </div>
+          )}
         </div>
       </header>
 
-      <div style={{flex:1,display:'flex',overflow:'hidden'}}>
-        {/* 3D */}
-        <div style={{flex:1,position:'relative',display:'flex',flexDirection:'column'}}
+      {/* ── Main content area ── */}
+      <div style={{flex:1,display:'flex',flexDirection:isVertical?'column':'row',overflow:'hidden'}}>
+
+        {/* ── 3D Viewport + Timeline ── */}
+        <div style={{flex:isVertical?'1 1 0%':'1',minHeight:0,position:'relative',display:'flex',flexDirection:'column'}}
           onDrop={handleDrop} onDragOver={(e)=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)}>
 
           {dragOver&&(
@@ -294,11 +315,12 @@ export default function App() {
             </div>
           )}
 
-          <div style={{flex:1}}>
+          {/* Canvas */}
+          <div style={{flex:1,minHeight:0}}>
             <Canvas
-              camera={{position:[0,1.5,5.2],fov:38}}
+              camera={{position:[0,1.5,isMobile?6.5:5.2],fov:isMobile?42:38}}
               gl={{antialias:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}}
-              dpr={[1,1.5]}
+              dpr={[1,isMobile?1:1.5]}
               style={{background:C.bg}}
               performance={{min:0.5}}
             >
@@ -308,26 +330,19 @@ export default function App() {
             </Canvas>
           </div>
 
-          {/* Legend */}
-          <div style={{position:'absolute',top:'20px',left:'20px',display:'flex',flexDirection:'column',gap:'5px',zIndex:10}}>
-            {[{c:'#c4a882',l:'Corps'},{c:C.tumor,l:'Tumeur (poumon droit)'}].map(({c,l})=>(
-              <div key={l} style={{display:'flex',alignItems:'center',gap:'7px',padding:'3px 10px',borderRadius:'6px',background:'rgba(5,10,18,0.8)',border:`1px solid ${C.border}`,fontSize:'10px',color:C.textMuted,fontFamily:'monospace'}}>
+          {/* Legend overlay */}
+          <div style={{position:'absolute',top:isMobile?'10px':'20px',left:isMobile?'10px':'20px',display:'flex',flexDirection:isMobile?'row':'column',gap:'5px',zIndex:10}}>
+            {[{c:'#c4a882',l:'Corps'},{c:C.tumor,l:isMobile?'Tumeur':'Tumeur (poumon droit)'}].map(({c,l})=>(
+              <div key={l} style={{display:'flex',alignItems:'center',gap:'6px',padding:'3px 8px',borderRadius:'6px',background:'rgba(5,10,18,0.8)',border:`1px solid ${C.border}`,fontSize:isMobile?'9px':'10px',color:C.textMuted,fontFamily:'monospace'}}>
                 <div style={{width:'7px',height:'7px',borderRadius:'50%',background:c,boxShadow:`0 0 5px ${c}44`}}/>{l}
               </div>
             ))}
           </div>
 
-          {modelStatus==='none'&&(
-            <div style={{position:'absolute',top:'20px',right:'20px',padding:'10px 14px',borderRadius:'10px',background:'rgba(5,10,18,0.85)',border:'1px solid rgba(6,214,160,0.25)',maxWidth:'220px',fontSize:'11px',color:C.textMuted,lineHeight:1.5,zIndex:10}}>
-              <div style={{color:C.accent,fontWeight:600,marginBottom:'4px'}}>💡 Astuce</div>
-              Glissez un fichier <span style={{color:C.accent}}>.glb</span> anatomique ici.
-            </div>
-          )}
-
           {/* Timeline */}
-          <div style={{padding:'12px 20px',borderTop:`1px solid ${C.border}`,background:C.bgCard,flexShrink:0}}>
-            <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
-              <button onClick={toggle} style={{width:'38px',height:'38px',borderRadius:'50%',border:`2px solid ${C.accent}`,background:playing?C.accentDim:'transparent',color:C.accent,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',flexShrink:0}}>
+          <div style={{padding:isMobile?'8px 12px':'12px 20px',borderTop:`1px solid ${C.border}`,background:C.bgCard,flexShrink:0}}>
+            <div style={{display:'flex',alignItems:'center',gap:isMobile?'8px':'14px'}}>
+              <button onClick={toggle} style={{width:isMobile?'32px':'38px',height:isMobile?'32px':'38px',borderRadius:'50%',border:`2px solid ${C.accent}`,background:playing?C.accentDim:'transparent',color:C.accent,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',flexShrink:0}}>
                 {playing?'⏸':'▶'}
               </button>
               <div style={{flex:1}}>
@@ -335,13 +350,15 @@ export default function App() {
                   onChange={(e)=>{setStep(Number(e.target.value));if(playing){clearInterval(ivRef.current);setPlaying(false);}}}
                   style={{width:'100%',height:'5px',appearance:'none',background:`linear-gradient(to right,${C.accent} ${pct}%,${C.sliderTrack} ${pct}%)`,borderRadius:'3px',outline:'none',cursor:'pointer'}}
                 />
-                <div style={{display:'flex',justifyContent:'space-between',marginTop:'7px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginTop:'6px'}}>
                   {TUMOR_DATA.map((item,i)=>(
-                    <button key={i} onClick={()=>setStep(i)} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
-                      <div style={{width:i===step?'9px':'5px',height:i===step?'9px':'5px',borderRadius:'50%',background:i<=step?C.accent:C.sliderTrack,transition:'all 0.3s',boxShadow:i===step?`0 0 8px ${C.accent}`:'none'}}/>
-                      <span style={{fontSize:'8px',color:i===step?C.accent:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
-                        {item.date.split(' ').slice(0,2).join(' ')}
-                      </span>
+                    <button key={i} onClick={()=>setStep(i)} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'2px'}}>
+                      <div style={{width:i===step?'8px':'5px',height:i===step?'8px':'5px',borderRadius:'50%',background:i<=step?C.accent:C.sliderTrack,transition:'all 0.3s',boxShadow:i===step?`0 0 8px ${C.accent}`:'none'}}/>
+                      {!isMobile&&(
+                        <span style={{fontSize:'8px',color:i===step?C.accent:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
+                          {item.date.split(' ').slice(0,2).join(' ')}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -350,43 +367,89 @@ export default function App() {
           </div>
         </div>
 
-        {/* Panel */}
-        <div style={{width:'290px',borderLeft:`1px solid ${C.border}`,background:C.bgCard,padding:'18px',display:'flex',flexDirection:'column',gap:'12px',overflowY:'auto',flexShrink:0}}>
-          <div>
-            <div style={{fontSize:'10px',textTransform:'uppercase',letterSpacing:'0.1em',color:C.textMuted,fontFamily:'monospace',marginBottom:'3px'}}>Séance actuelle</div>
-            <div style={{fontSize:'18px',fontWeight:700}}>{d.label}</div>
-            <div style={{fontSize:'12px',color:C.textMuted,marginTop:'2px'}}>{d.date}</div>
-          </div>
-          <div style={{height:'1px',background:C.border}}/>
-          <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-            <Stat label="Volume tumoral" value={vol} unit="cm³" trend={step>0?`-${((1-d.size/TUMOR_DATA[step-1].size)*100).toFixed(0)}% vs précédent`:null}/>
-            <Stat label="Réduction totale" value={red} unit="%" color={Number(red)>50?C.positive:Number(red)>20?C.warning:C.text}/>
-            <Stat label="Diamètre" value={dia} unit="mm"/>
-          </div>
-          <div style={{height:'1px',background:C.border}}/>
-          <div>
-            <div style={{display:'flex',justifyContent:'space-between',marginBottom:'6px'}}>
-              <span style={{fontSize:'10px',textTransform:'uppercase',color:C.textMuted,fontFamily:'monospace'}}>Progression</span>
-              <span style={{fontSize:'11px',color:C.accent,fontFamily:'monospace'}}>{Math.round(pct)}%</span>
+        {/* ── Panel — always visible ── */}
+        <div style={{
+          ...(isDesktop ? {
+            width:'290px',
+            borderLeft:`1px solid ${C.border}`,
+            flexShrink:0,
+          } : {
+            flexShrink:0,
+            borderTop:`1px solid ${C.border}`,
+            maxHeight:isMobile?'35vh':'40vh',
+            minHeight:isMobile?'140px':'160px',
+          }),
+          background:C.bgCard,
+          padding:isMobile?'12px':'18px',
+          display:'flex',
+          flexDirection:'column',
+          gap:isMobile?'8px':'12px',
+          overflowY:'auto',
+        }}>
+          {/* Session info */}
+          <div style={{display:'flex',alignItems:isVertical?'center':'flex-start',justifyContent:isVertical?'space-between':'flex-start',flexDirection:isVertical?'row':'column',gap:isVertical?'8px':'0'}}>
+            <div>
+              <div style={{fontSize:'10px',textTransform:'uppercase',letterSpacing:'0.1em',color:C.textMuted,fontFamily:'monospace',marginBottom:'3px'}}>Séance actuelle</div>
+              <div style={{fontSize:isMobile?'15px':'18px',fontWeight:700}}>{d.label}</div>
+              {!isMobile&&<div style={{fontSize:'12px',color:C.textMuted,marginTop:'2px'}}>{d.date}</div>}
             </div>
-            <div style={{height:'5px',background:C.sliderTrack,borderRadius:'3px',overflow:'hidden'}}>
-              <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},#4a90d9)`,borderRadius:'3px',transition:'width 0.5s'}}/>
-            </div>
+            {isVertical&&(
+              <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                <span style={{fontSize:'11px',color:C.accent,fontFamily:'monospace',fontWeight:600}}>{Math.round(pct)}%</span>
+                <div style={{width:isMobile?'50px':'80px',height:'5px',background:C.sliderTrack,borderRadius:'3px',overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},#4a90d9)`,borderRadius:'3px',transition:'width 0.5s'}}/>
+                </div>
+              </div>
+            )}
           </div>
-          <div>
+
+          <div style={{height:'1px',background:C.border,flexShrink:0}}/>
+
+          {/* Stats row/col */}
+          <div style={{display:'flex',gap:'8px',flexDirection:compactStats?'row':'column'}}>
+            <Stat compact={compactStats} label="Volume" value={vol} unit="cm³" trend={step>0?`-${((1-d.size/TUMOR_DATA[step-1].size)*100).toFixed(0)}%`:null}/>
+            <Stat compact={compactStats} label="Réduction" value={red} unit="%" color={Number(red)>50?C.positive:Number(red)>20?C.warning:C.text}/>
+            <Stat compact={compactStats} label="Diamètre" value={dia} unit="mm"/>
+          </div>
+
+          {/* Progress bar — desktop only (already shown inline above for vertical) */}
+          {isDesktop&&(
+            <>
+              <div style={{height:'1px',background:C.border}}/>
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'6px'}}>
+                  <span style={{fontSize:'10px',textTransform:'uppercase',color:C.textMuted,fontFamily:'monospace'}}>Progression</span>
+                  <span style={{fontSize:'11px',color:C.accent,fontFamily:'monospace'}}>{Math.round(pct)}%</span>
+                </div>
+                <div style={{height:'5px',background:C.sliderTrack,borderRadius:'3px',overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},#4a90d9)`,borderRadius:'3px',transition:'width 0.5s'}}/>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* History list */}
+          <div style={{height:'1px',background:C.border,flexShrink:0}}/>
+          <div style={{flex:1,minHeight:0,overflowY:'auto'}}>
             <div style={{fontSize:'10px',textTransform:'uppercase',color:C.textMuted,fontFamily:'monospace',marginBottom:'6px'}}>Historique</div>
-            {TUMOR_DATA.map((item,i)=>(
-              <button key={i} onClick={()=>setStep(i)} style={{display:'flex',alignItems:'center',gap:'9px',padding:'6px 9px',borderRadius:'7px',border:'none',background:i===step?C.accentDim:'transparent',cursor:'pointer',width:'100%',textAlign:'left',marginBottom:'2px'}}>
-                <div style={{width:'6px',height:'6px',borderRadius:'50%',background:i<=step?C.accent:C.sliderTrack}}/>
-                <span style={{flex:1,fontSize:'11px',color:i===step?C.text:C.textMuted,fontWeight:i===step?600:400}}>{item.label}</span>
-                <span style={{fontSize:'10px',fontFamily:'monospace',color:i===step?C.accent:C.textMuted}}>{(item.size*100).toFixed(0)}%</span>
-              </button>
-            ))}
+            <div style={{display:'flex',flexDirection:isTablet?'row':'column',flexWrap:isTablet?'wrap':'nowrap',gap:isTablet?'4px':'0'}}>
+              {TUMOR_DATA.map((item,i)=>(
+                <button key={i} onClick={()=>setStep(i)} style={{display:'flex',alignItems:'center',gap:isMobile?'6px':'9px',padding:isMobile?'5px 8px':'6px 9px',borderRadius:'7px',border:'none',background:i===step?C.accentDim:'transparent',cursor:'pointer',flex:isTablet?'1 1 auto':'unset',minWidth:isTablet?'140px':'unset',textAlign:'left',marginBottom:isTablet?'0':'2px'}}>
+                  <div style={{width:'6px',height:'6px',borderRadius:'50%',background:i<=step?C.accent:C.sliderTrack,flexShrink:0}}/>
+                  <span style={{flex:1,fontSize:'11px',color:i===step?C.text:C.textMuted,fontWeight:i===step?600:400}}>{item.label}</span>
+                  <span style={{fontSize:'10px',fontFamily:'monospace',color:i===step?C.accent:C.textMuted}}>{(item.size*100).toFixed(0)}%</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={{marginTop:'auto',padding:'9px 11px',borderRadius:'7px',background:'rgba(6,214,160,0.04)',border:'1px solid rgba(6,214,160,0.1)',fontSize:'9px',color:C.textMuted,lineHeight:1.5}}>
-            ⓘ Prototype — données simulées. Tumeur au poumon droit (68% hauteur).
-            {modelStatus==='loaded'&&' Modèle GLB chargé.'}
-          </div>
+
+          {/* Footer — desktop only */}
+          {isDesktop&&(
+            <div style={{marginTop:'auto',padding:'9px 11px',borderRadius:'7px',background:'rgba(6,214,160,0.04)',border:'1px solid rgba(6,214,160,0.1)',fontSize:'9px',color:C.textMuted,lineHeight:1.5,flexShrink:0}}>
+              ⓘ Prototype — données simulées. Tumeur au poumon droit.
+              {modelStatus==='loaded'&&' Modèle GLB chargé.'}
+            </div>
+          )}
         </div>
       </div>
     </div>
