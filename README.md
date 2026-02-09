@@ -115,12 +115,12 @@ L'évolution tumorale est modélisée sur 7 sessions :
 | Session | Date | Taille relative | Étape |
 |---------|------|-----------------|-------|
 | 1 | 15 Jan 2025 | 100% | Diagnostic initial |
-| 2 | 29 Jan 2025 | 92% | Séance 3 |
-| 3 | 12 Fév 2025 | 78% | Séance 6 |
-| 4 | 26 Fév 2025 | 61% | Séance 9 |
-| 5 | 12 Mar 2025 | 45% | Séance 12 |
-| 6 | 26 Mar 2025 | 28% | Séance 15 |
-| 7 | 09 Avr 2025 | 12% | Contrôle final |
+| 2 | 29 Jan 2025 | 50% | Séance 3 |
+| 3 | 12 Fév 2025 | 25% | Séance 6 |
+| 4 | 26 Fév 2025 | 12.5% | Séance 9 |
+| 5 | 12 Mar 2025 | 6.25% | Séance 12 |
+| 6 | 26 Mar 2025 | 3.125% | Séance 15 |
+| 7 | 09 Avr 2025 | 1.5625% | Dernier contrôle |
 
 > Ces données sont simulées à des fins de démonstration. Dans un contexte clinique réel, les valeurs seraient issues d'imageries médicales (IRM, CT scan).
 
