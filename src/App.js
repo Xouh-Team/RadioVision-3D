@@ -11,7 +11,7 @@ const TUMOR_DATA = [
   { session: 4, date: '26 Fév 2025', size: 0.71, label: 'Séance 9' },
   { session: 5, date: '12 Mar 2025', size: 0.65, label: 'Séance 12' },
   { session: 6, date: '26 Mar 2025', size: 0.59, label: 'Séance 15' },
-  { session: 7, date: '09 Avr 2025', size: 0.41, label: 'Contrôle final' },
+  { session: 7, date: '09 Avr 2025', size: 0.41, label: 'Dernier contrôle' },
 ];
 
 const C = {
@@ -243,7 +243,7 @@ function Stat({label,value,unit,trend,color,compact}) {
 export default function App() {
   const [step,setStep]=useState(0);
   const [playing,setPlaying]=useState(false);
-  const [glbUrl,setGlbUrl]=useState(process.env.PUBLIC_URL + '/female_body.glb');
+  const [glbUrl,setGlbUrl]=useState(process.env.PUBLIC_URL + 'models/female_body.glb');
   const [modelStatus,setModelStatus]=useState('loading');
   const [dragOver,setDragOver]=useState(false);
   const [tumorPos,setTumorPos]=useState([0,1.5,0.1]);
