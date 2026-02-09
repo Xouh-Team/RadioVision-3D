@@ -6,12 +6,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 const TUMOR_DATA = [
   { session: 1, date: '15 Jan 2025', size: 1.0, label: 'Diagnostic initial' },
-  { session: 2, date: '29 Jan 2025', size: 0.92, label: 'Séance 3' },
+  { session: 2, date: '29 Jan 2025', size: 0.85, label: 'Séance 3' },
   { session: 3, date: '12 Fév 2025', size: 0.78, label: 'Séance 6' },
-  { session: 4, date: '26 Fév 2025', size: 0.61, label: 'Séance 9' },
-  { session: 5, date: '12 Mar 2025', size: 0.45, label: 'Séance 12' },
-  { session: 6, date: '26 Mar 2025', size: 0.28, label: 'Séance 15' },
-  { session: 7, date: '09 Avr 2025', size: 0.12, label: 'Contrôle final' },
+  { session: 4, date: '26 Fév 2025', size: 0.71, label: 'Séance 9' },
+  { session: 5, date: '12 Mar 2025', size: 0.65, label: 'Séance 12' },
+  { session: 6, date: '26 Mar 2025', size: 0.59, label: 'Séance 15' },
+  { session: 7, date: '09 Avr 2025', size: 0.41, label: 'Contrôle final' },
 ];
 
 const C = {
@@ -40,7 +40,7 @@ function Tumor({ scale }) {
   const coreRef = useRef();
 
   const tumorGeo = useMemo(() => {
-    const geo = new THREE.SphereGeometry(0.14, 32, 32);
+    const geo = new THREE.SphereGeometry(0.04, 32, 32);
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
@@ -65,7 +65,7 @@ function Tumor({ scale }) {
         <meshStandardMaterial color={C.tumor} emissive={C.tumor} emissiveIntensity={0.8} roughness={0.3} />
       </mesh>
       <mesh>
-        <sphereGeometry args={[0.22, 16, 16]} />
+        <sphereGeometry args={[0.06, 16, 16]} />
         <meshBasicMaterial color={C.tumorGlow} transparent opacity={0.12} side={THREE.BackSide} />
       </mesh>
     </group>
@@ -123,7 +123,7 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
         onBoundsCalculated({
           height: h, width: w, depth: d,
           // Right lung position: 68% height, 15% right, slightly forward
-          tumorPosition: [w * 0.15, h * 0.68, d * 0.05],
+          tumorPosition: [w * 0.10, h * 0.70, d * 0.05],
         });
       }
     }, undefined, (err) => console.error('GLB error:', err));
