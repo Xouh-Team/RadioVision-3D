@@ -213,6 +213,19 @@ function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated })
   );
 }
 
+/* ── Tumor-only scene ── */
+function TumorOnlyScene({ tumorScale }) {
+  return (
+    <>
+      <ambientLight intensity={1.2} color="#334455" />
+      <directionalLight position={[2, 3, 2]} intensity={1.5} color="#ffeedd" />
+      <pointLight position={[0, 0, 0.5]} intensity={1.0} color={C.tumorGlow} distance={2} />
+      <Tumor scale={tumorScale} />
+      <OrbitControls enableDamping dampingFactor={0.08} minDistance={0.05} maxDistance={1} />
+    </>
+  );
+}
+
 /* ── Responsive hook ── */
 function useResponsive() {
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
@@ -315,28 +328,55 @@ export default function App() {
             </div>
           )}
 
-          {/* Canvas */}
-          <div style={{flex:1,minHeight:0}}>
-            <Canvas
-              camera={{position:[0,1.5,isMobile?6.5:5.2],fov:isMobile?42:38}}
-              gl={{antialias:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}}
-              dpr={[1,isMobile?1:1.5]}
-              style={{background:C.bg}}
-              performance={{min:0.5}}
-            >
-              <Suspense fallback={null}>
-                <SceneContent tumorScale={d.size} glbUrl={glbUrl} tumorPosition={tumorPos} onBoundsCalculated={onBoundsCalculated}/>
-              </Suspense>
-            </Canvas>
-          </div>
+          {/* Split canvas area */}
+          <div style={{flex:1,minHeight:0,display:'flex',flexDirection:isMobile?'column':'row'}}>
 
-          {/* Legend overlay */}
-          <div style={{position:'absolute',top:isMobile?'10px':'20px',left:isMobile?'10px':'20px',display:'flex',flexDirection:isMobile?'row':'column',gap:'5px',zIndex:10}}>
-            {[{c:'#c4a882',l:'Corps'},{c:C.tumor,l:isMobile?'Tumeur':'Tumeur (poumon droit)'}].map(({c,l})=>(
-              <div key={l} style={{display:'flex',alignItems:'center',gap:'6px',padding:'3px 8px',borderRadius:'6px',background:'rgba(5,10,18,0.8)',border:`1px solid ${C.border}`,fontSize:isMobile?'9px':'10px',color:C.textMuted,fontFamily:'monospace'}}>
-                <div style={{width:'7px',height:'7px',borderRadius:'50%',background:c,boxShadow:`0 0 5px ${c}44`}}/>{l}
+            {/* Panel 1 — Corps + Tumeur */}
+            <div style={{flex:1,minHeight:0,position:'relative',borderRight:isMobile?'none':`1px solid ${C.border}`,borderBottom:isMobile?`1px solid ${C.border}`:'none'}}>
+              <div style={{position:'absolute',top:'8px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'3px 10px',borderRadius:'6px',background:'rgba(5,10,18,0.75)',border:`1px solid ${C.border}`,fontSize:'9px',color:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
+                Corps + Tumeur
               </div>
-            ))}
+              <div style={{position:'absolute',top:'36px',left:'10px',display:'flex',flexDirection:'column',gap:'5px',zIndex:10}}>
+                {[{c:'#c4a882',l:'Corps'},{c:C.tumor,l:'Tumeur'}].map(({c,l})=>(
+                  <div key={l} style={{display:'flex',alignItems:'center',gap:'6px',padding:'3px 8px',borderRadius:'6px',background:'rgba(5,10,18,0.8)',border:`1px solid ${C.border}`,fontSize:'10px',color:C.textMuted,fontFamily:'monospace'}}>
+                    <div style={{width:'7px',height:'7px',borderRadius:'50%',background:c,boxShadow:`0 0 5px ${c}44`}}/>{l}
+                  </div>
+                ))}
+              </div>
+              <Canvas
+                camera={{position:[0,1.5,isMobile?6.5:5.2],fov:isMobile?42:38}}
+                gl={{antialias:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}}
+                dpr={[1,isMobile?1:1.5]}
+                style={{background:C.bg}}
+                performance={{min:0.5}}
+              >
+                <Suspense fallback={null}>
+                  <SceneContent tumorScale={d.size} glbUrl={glbUrl} tumorPosition={tumorPos} onBoundsCalculated={onBoundsCalculated}/>
+                </Suspense>
+              </Canvas>
+            </div>
+
+            {/* Panel 2 — Tumeur seule */}
+            <div style={{flex:1,minHeight:0,position:'relative'}}>
+              <div style={{position:'absolute',top:'8px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'3px 10px',borderRadius:'6px',background:'rgba(5,10,18,0.75)',border:`1px solid ${C.border}`,fontSize:'9px',color:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
+                Tumeur isolée
+              </div>
+              <div style={{position:'absolute',bottom:'10px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'4px 12px',borderRadius:'8px',background:'rgba(5,10,18,0.8)',border:`1px solid rgba(239,68,68,0.3)`,fontSize:'10px',color:C.tumor,fontFamily:'monospace',whiteSpace:'nowrap'}}>
+                Ø {dia} mm · {vol} cm³
+              </div>
+              <Canvas
+                camera={{position:[0,0,0.25],fov:35}}
+                gl={{antialias:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}}
+                dpr={[1,isMobile?1:1.5]}
+                style={{background:C.bg}}
+                performance={{min:0.5}}
+              >
+                <Suspense fallback={null}>
+                  <TumorOnlyScene tumorScale={d.size}/>
+                </Suspense>
+              </Canvas>
+            </div>
+
           </div>
 
           {/* Timeline */}
