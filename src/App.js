@@ -252,14 +252,119 @@ function Stat({label,value,unit,trend,color,compact}) {
   );
 }
 
-/* ═══ MAIN ═══ */
-export default function App() {
+/* ═══ LOGIN ═══ */
+function LoginScreen({ onLogin }) {
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', borderRadius: '8px',
+    border: `1px solid ${C.border}`, background: 'rgba(5,10,18,0.6)',
+    color: C.text, fontSize: '13px', fontFamily: 'monospace',
+    outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s',
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!user || !pass) { setError('Identifiants requis.'); return; }
+    const isDr = user.trim().toLowerCase() === 'dr.martin' && pass === 'radiologie';
+    const isPatient = user.trim().toLowerCase() === 'patient-2847' && pass === 'patient2847';
+    if (!isDr && !isPatient) { setError('Identifiants incorrects.'); return; }
+    setLoading(true); setError('');
+    setTimeout(() => { setLoading(false); onLogin(isDr ? 'doctor' : 'patient'); }, 900);
+  };
+
+  return (
+    <div style={{ width: '100vw', height: '100vh', background: C.bg, color: C.text, fontFamily: "-apple-system,'Segoe UI',sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+
+      {/* Fond grille */}
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(rgba(6,214,160,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,0.03) 1px,transparent 1px)`, backgroundSize: '40px 40px', pointerEvents: 'none' }} />
+
+      {/* Halo central */}
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '500px', height: '500px', background: 'radial-gradient(circle,rgba(6,214,160,0.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
+
+      {/* Card */}
+      <div style={{ position: 'relative', width: '100%', maxWidth: '380px', margin: '0 16px', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: '16px', padding: '36px 32px', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
+
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `linear-gradient(135deg,${C.accent},#4a90d9)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', color: '#fff', flexShrink: 0 }}>◎</div>
+          <div>
+            <div style={{ fontSize: '16px', fontWeight: 700 }}>RadioVision 3D</div>
+            <div style={{ fontSize: '10px', color: C.textMuted, fontFamily: 'monospace', marginTop: '1px' }}>Accès sécurisé — Espace clinique</div>
+          </div>
+        </div>
+
+        {/* Séparateur */}
+        <div style={{ height: '1px', background: C.border, marginBottom: '28px' }} />
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          <div>
+            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: C.textMuted, fontFamily: 'monospace', marginBottom: '6px' }}>Identifiant</div>
+            <input
+              type="text" value={user} onChange={e => { setUser(e.target.value); setError(''); }}
+              placeholder="Dr. Dupont" autoComplete="username"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = C.accent}
+              onBlur={e => e.target.style.borderColor = C.border}
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: C.textMuted, fontFamily: 'monospace', marginBottom: '6px' }}>Mot de passe</div>
+            <input
+              type="password" value={pass} onChange={e => { setPass(e.target.value); setError(''); }}
+              placeholder="••••••••" autoComplete="current-password"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = C.accent}
+              onBlur={e => e.target.style.borderColor = C.border}
+            />
+          </div>
+
+          {error && (
+            <div style={{ padding: '8px 12px', borderRadius: '7px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', fontSize: '11px', color: '#ef4444', fontFamily: 'monospace' }}>
+              ⚠ {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading} style={{ marginTop: '4px', padding: '11px', borderRadius: '9px', border: 'none', background: loading ? C.accentDim : `linear-gradient(135deg,${C.accent},#4a90d9)`, color: loading ? C.accent : '#fff', fontWeight: 700, fontSize: '13px', cursor: loading ? 'default' : 'pointer', fontFamily: 'monospace', letterSpacing: '0.05em', transition: 'opacity 0.2s' }}>
+            {loading ? '⏳ Connexion…' : 'Se connecter'}
+          </button>
+
+        </form>
+
+        {/* Footer */}
+        <div style={{ marginTop: '24px', padding: '10px 12px', borderRadius: '8px', background: 'rgba(6,214,160,0.04)', border: '1px solid rgba(6,214,160,0.1)', fontSize: '9px', color: C.textMuted, lineHeight: 1.7, fontFamily: 'monospace' }}>
+          ⓘ Comptes démo :<br />
+          Médecin — <span style={{color:C.accent}}>dr.martin</span> / <span style={{color:C.accent}}>radiologie</span><br />
+          Patient — <span style={{color:'#4a90d9'}}>patient-2847</span> / <span style={{color:'#4a90d9'}}>patient2847</span>
+        </div>
+
+        {/* Coin décoratif */}
+        <div style={{ position: 'absolute', top: '14px', right: '16px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: C.accent, boxShadow: `0 0 8px ${C.accent}` }} />
+          <span style={{ fontSize: '9px', color: C.accent, fontFamily: 'monospace' }}>SECURE</span>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+/* ═══ MAIN APP ═══ */
+function MainApp({ role }) {
+  const isDoctor = role === 'doctor';
   const [step,setStep]=useState(0);
   const [playing,setPlaying]=useState(false);
   const [glbUrl,setGlbUrl]=useState(process.env.PUBLIC_URL + 'models/female_body.glb');
   const [modelStatus,setModelStatus]=useState('loading');
   const [dragOver,setDragOver]=useState(false);
   const [tumorPos,setTumorPos]=useState([0,1.5,0.1]);
+  const [interpretations,setInterpretations]=useState(Array(TUMOR_DATA.length).fill(''));
+  const [hoveredSession,setHoveredSession]=useState(null);
   const ivRef=useRef(null);
   const fileRef=useRef(null);
   const {isMobile,isTablet,isDesktop}=useResponsive();
@@ -306,9 +411,9 @@ export default function App() {
           </button>
           <input ref={fileRef} type="file" accept=".glb,.gltf" style={{display:'none'}} onChange={(e)=>e.target.files[0]&&handleFile(e.target.files[0])}/>
           {!isMobile&&(
-            <div style={{display:'flex',alignItems:'center',gap:'7px',padding:'4px 12px',borderRadius:'16px',background:C.accentDim,border:'1px solid rgba(6,214,160,0.2)'}}>
-              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:C.accent,boxShadow:`0 0 8px ${C.accent}`}}/>
-              <span style={{fontSize:'11px',color:C.accent,fontFamily:'monospace'}}>Patient #2847</span>
+            <div style={{display:'flex',alignItems:'center',gap:'7px',padding:'4px 12px',borderRadius:'16px',background:isDoctor?C.accentDim:'rgba(74,144,217,0.12)',border:isDoctor?'1px solid rgba(6,214,160,0.2)':'1px solid rgba(74,144,217,0.2)'}}>
+              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:isDoctor?C.accent:'#4a90d9',boxShadow:`0 0 8px ${isDoctor?C.accent:'#4a90d9'}`}}/>
+              <span style={{fontSize:'11px',color:isDoctor?C.accent:'#4a90d9',fontFamily:'monospace'}}>{isDoctor?'Dr. Martin':'Patient #2847'}</span>
             </div>
           )}
         </div>
@@ -392,8 +497,23 @@ export default function App() {
                 />
                 <div style={{display:'flex',justifyContent:'space-between',marginTop:'6px'}}>
                   {TUMOR_DATA.map((item,i)=>(
-                    <button key={i} onClick={()=>setStep(i)} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'2px'}}>
-                      <div style={{width:i===step?'8px':'5px',height:i===step?'8px':'5px',borderRadius:'50%',background:i<=step?C.accent:C.sliderTrack,transition:'all 0.3s',boxShadow:i===step?`0 0 8px ${C.accent}`:'none'}}/>
+                    <button key={i} onClick={()=>setStep(i)}
+                      onMouseEnter={()=>setHoveredSession(i)}
+                      onMouseLeave={()=>setHoveredSession(null)}
+                      style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',position:'relative'}}>
+                      {/* Tooltip interprétation */}
+                      {hoveredSession===i && interpretations[i] && (
+                        <div style={{position:'absolute',bottom:'calc(100% + 10px)',left:'50%',transform:'translateX(-50%)',width:'220px',padding:'10px 12px',borderRadius:'9px',background:C.bgCard,border:`1px solid ${isDoctor?'rgba(6,214,160,0.3)':'rgba(74,144,217,0.3)'}`,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',zIndex:200,pointerEvents:'none'}}>
+                          <div style={{fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.1em',color:isDoctor?C.accent:'#4a90d9',fontFamily:'monospace',marginBottom:'5px'}}>
+                            {isDoctor?'◎ Mon interprétation':'◎ Interprétation médicale'}
+                          </div>
+                          <div style={{fontSize:'11px',color:C.text,lineHeight:1.55}}>{interpretations[i]}</div>
+                          <div style={{fontSize:'9px',color:C.textMuted,fontFamily:'monospace',marginTop:'6px'}}>{item.date} · {item.label}</div>
+                          {/* Flèche */}
+                          <div style={{position:'absolute',bottom:'-5px',left:'50%',transform:'translateX(-50%)',width:'8px',height:'8px',background:C.bgCard,border:`1px solid ${isDoctor?'rgba(6,214,160,0.3)':'rgba(74,144,217,0.3)'}`,borderTop:'none',borderLeft:'none',rotate:'45deg'}}/>
+                        </div>
+                      )}
+                      <div style={{width:i===step?'8px':'5px',height:i===step?'8px':'5px',borderRadius:'50%',background:i<=step?C.accent:C.sliderTrack,transition:'all 0.3s',boxShadow:i===step?`0 0 8px ${C.accent}`:interpretations[i]?`0 0 6px rgba(74,144,217,0.6)`:'none',outline:interpretations[i]?'2px solid rgba(74,144,217,0.4)':'none',outlineOffset:'2px'}}/>
                       {!isMobile&&(
                         <span style={{fontSize:'8px',color:i===step?C.accent:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
                           {item.date.split(' ').slice(0,2).join(' ')}
@@ -483,6 +603,35 @@ export default function App() {
             </div>
           </div>
 
+          {/* Interprétation médicale */}
+          <div style={{height:'1px',background:C.border,flexShrink:0}}/>
+          <div style={{flexShrink:0}}>
+            <div style={{fontSize:'10px',textTransform:'uppercase',letterSpacing:'0.1em',color:isDoctor?C.accent:'#4a90d9',fontFamily:'monospace',marginBottom:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
+              <span>◎</span>
+              <span>{isDoctor?'Interprétation médicale':'Avis du médecin'}</span>
+              {interpretations[step]&&!isDoctor&&<span style={{marginLeft:'auto',fontSize:'8px',color:'rgba(74,144,217,0.7)',fontFamily:'monospace'}}>survol timeline</span>}
+            </div>
+            {isDoctor ? (
+              <textarea
+                value={interpretations[step]}
+                onChange={e=>{const n=[...interpretations];n[step]=e.target.value;setInterpretations(n);}}
+                placeholder={`Observations pour "${d.label}"…`}
+                rows={4}
+                style={{width:'100%',padding:'10px 12px',borderRadius:'8px',border:`1px solid ${interpretations[step]?'rgba(6,214,160,0.35)':C.border}`,background:'rgba(5,10,18,0.5)',color:C.text,fontSize:'11px',fontFamily:'monospace',resize:'vertical',outline:'none',boxSizing:'border-box',lineHeight:1.6,transition:'border-color 0.2s'}}
+                onFocus={e=>e.target.style.borderColor=C.accent}
+                onBlur={e=>e.target.style.borderColor=interpretations[step]?'rgba(6,214,160,0.35)':C.border}
+              />
+            ) : interpretations[step] ? (
+              <div style={{padding:'10px 12px',borderRadius:'8px',background:'rgba(74,144,217,0.06)',border:'1px solid rgba(74,144,217,0.2)',fontSize:'11px',color:C.text,lineHeight:1.6,fontFamily:'monospace'}}>
+                {interpretations[step]}
+              </div>
+            ) : (
+              <div style={{padding:'10px 12px',borderRadius:'8px',background:'rgba(5,10,18,0.3)',border:`1px dashed ${C.border}`,fontSize:'10px',color:C.textMuted,fontFamily:'monospace',textAlign:'center'}}>
+                Aucune interprétation pour cette séance.
+              </div>
+            )}
+          </div>
+
           {/* Footer — desktop only */}
           {isDesktop&&(
             <div style={{marginTop:'auto',padding:'9px 11px',borderRadius:'7px',background:'rgba(6,214,160,0.04)',border:'1px solid rgba(6,214,160,0.1)',fontSize:'9px',color:C.textMuted,lineHeight:1.5,flexShrink:0}}>
@@ -494,4 +643,12 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+/* ═══ ROOT ═══ */
+export default function App() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [role, setRole] = useState('patient');
+  if (!authenticated) return <LoginScreen onLogin={(r) => { setRole(r); setAuthenticated(true); }} />;
+  return <MainApp role={role} />;
 }
