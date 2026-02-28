@@ -177,22 +177,6 @@ function FallbackBody() {
   );
 }
 
-/* ── Particles ── */
-function Particles() {
-  const ref = useRef();
-  const positions = useMemo(() => {
-    const a = new Float32Array(40*3);
-    for (let i=0;i<40;i++){a[i*3]=(Math.random()-0.5)*8;a[i*3+1]=Math.random()*4;a[i*3+2]=(Math.random()-0.5)*8;}
-    return a;
-  }, []);
-  useFrame(({clock})=>{if(ref.current)ref.current.rotation.y=clock.getElapsedTime()*0.02;});
-  return (
-    <points ref={ref}>
-      <bufferGeometry><bufferAttribute attach="attributes-position" count={40} array={positions} itemSize={3}/></bufferGeometry>
-      <pointsMaterial color={C.accent} size={0.015} transparent opacity={0.3}/>
-    </points>
-  );
-}
 
 /* ── Scene ── */
 function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated }) {
@@ -203,7 +187,6 @@ function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated })
       <directionalLight position={[-3,2,3]} intensity={0.4} color="#4a90d9" />
       {glbUrl ? <LoadedModel glbUrl={glbUrl} onBoundsCalculated={onBoundsCalculated}/> : <FallbackBody/>}
       <group position={tumorPosition}><Tumor scale={tumorScale}/></group>
-      <Particles/>
       <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.05,0]}>
         <planeGeometry args={[6,6,20,20]}/>
         <meshBasicMaterial color={C.accent} wireframe transparent opacity={0.03}/>
@@ -363,7 +346,10 @@ function MainApp({ role }) {
   const [modelStatus,setModelStatus]=useState('loading');
   const [dragOver,setDragOver]=useState(false);
   const [tumorPos,setTumorPos]=useState([0,1.5,0.1]);
-  const [interpretations,setInterpretations]=useState(Array(TUMOR_DATA.length).fill(''));
+  const [interpretations,setInterpretations]=useState(()=>{
+    try{const s=localStorage.getItem('rv3d_interpretations');return s?JSON.parse(s):Array(TUMOR_DATA.length).fill('');}
+    catch{return Array(TUMOR_DATA.length).fill('');}
+  });
   const [hoveredSession,setHoveredSession]=useState(null);
   const ivRef=useRef(null);
   const fileRef=useRef(null);
@@ -614,7 +600,7 @@ function MainApp({ role }) {
             {isDoctor ? (
               <textarea
                 value={interpretations[step]}
-                onChange={e=>{const n=[...interpretations];n[step]=e.target.value;setInterpretations(n);}}
+                onChange={e=>{const n=[...interpretations];n[step]=e.target.value;setInterpretations(n);try{localStorage.setItem('rv3d_interpretations',JSON.stringify(n));}catch{};}}
                 placeholder={`Observations pour "${d.label}"…`}
                 rows={4}
                 style={{width:'100%',padding:'10px 12px',borderRadius:'8px',border:`1px solid ${interpretations[step]?'rgba(6,214,160,0.35)':C.border}`,background:'rgba(5,10,18,0.5)',color:C.text,fontSize:'11px',fontFamily:'monospace',resize:'vertical',outline:'none',boxSizing:'border-box',lineHeight:1.6,transition:'border-color 0.2s'}}
