@@ -218,7 +218,7 @@ function useResponsive() {
     return () => window.removeEventListener('resize', handler);
   }, []);
   // mobile: <640, tablet: 640-1024, desktop: >1024
-  return { isMobile: size.w < 640, isTablet: size.w >= 640 && size.w < 1024, isDesktop: size.w >= 1024, width: size.w, height: size.h };
+  return useMemo(() => ({ isMobile: size.w < 640, isTablet: size.w >= 640 && size.w < 1024, isDesktop: size.w >= 1024, width: size.w, height: size.h }), [size.w, size.h]);
 }
 
 /* ── Stat ── */
@@ -342,7 +342,7 @@ function MainApp({ role }) {
   const isDoctor = role === 'doctor';
   const [step,setStep]=useState(0);
   const [playing,setPlaying]=useState(false);
-  const [glbUrl,setGlbUrl]=useState(process.env.PUBLIC_URL + 'models/female_body.glb');
+  const [glbUrl,setGlbUrl]=useState(import.meta.env.BASE_URL + 'models/female_body.glb');
   const [modelStatus,setModelStatus]=useState('loading');
   const [dragOver,setDragOver]=useState(false);
   const [tumorPos,setTumorPos]=useState([0,1.5,0.1]);
@@ -352,32 +352,38 @@ function MainApp({ role }) {
   });
   const [hoveredSession,setHoveredSession]=useState(null);
   const ivRef=useRef(null);
+  const saveRef=useRef(null);
   const fileRef=useRef(null);
   const {isMobile,isTablet,isDesktop}=useResponsive();
   const isVertical = !isDesktop; // mobile & tablet: layout vertical (3D top, panel bottom)
 
-  const d=TUMOR_DATA[step];
-  const vol=(4.2*d.size).toFixed(1);
-  const red=((1-d.size)*100).toFixed(0);
-  const dia=(32*d.size).toFixed(0);
-  const pct=(step/(TUMOR_DATA.length-1))*100;
+  const {d,vol,red,dia,pct}=useMemo(()=>{
+    const d=TUMOR_DATA[step];
+    return {d,vol:(4.2*d.size).toFixed(1),red:((1-d.size)*100).toFixed(0),dia:(32*d.size).toFixed(0),pct:(step/(TUMOR_DATA.length-1))*100};
+  },[step]);
 
   const toggle=()=>{
     if(playing){clearInterval(ivRef.current);setPlaying(false);return;}
+    clearInterval(ivRef.current);
     setPlaying(true);setStep(0);let s=0;
     ivRef.current=setInterval(()=>{s++;if(s>=TUMOR_DATA.length){clearInterval(ivRef.current);setPlaying(false);return;}setStep(s);},1800);
   };
-  useEffect(()=>()=>clearInterval(ivRef.current),[]);
+  useEffect(()=>()=>{clearInterval(ivRef.current);clearTimeout(saveRef.current);},[]);
 
   const handleFile=(file)=>{
     if(!file||!file.name.match(/\.(glb|gltf)$/i))return;
     setModelStatus('loading');
-    setGlbUrl(URL.createObjectURL(file));
+    const newUrl=URL.createObjectURL(file);
+    setGlbUrl(prev=>{if(prev&&prev.startsWith('blob:'))URL.revokeObjectURL(prev);return newUrl;});
   };
   const handleDrop=(e)=>{e.preventDefault();setDragOver(false);if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);};
   const onBoundsCalculated=useCallback((bounds)=>{setTumorPos(bounds.tumorPosition);setModelStatus('loaded');},[]);
 
   const compactStats = isVertical;
+  const glConfig=useMemo(()=>({antialias:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}),[]);
+  const dprConfig=useMemo(()=>[1,isMobile?1:1.5],[isMobile]);
+  const camMain=useMemo(()=>({position:[0,1.5,isMobile?6.5:5.2],fov:isMobile?42:38}),[isMobile]);
+  const camTumor=useMemo(()=>({position:[0,0,0.25],fov:35}),[]);
 
   return (
     <div style={{width:'100vw',height:'100vh',background:C.bg,color:C.text,fontFamily:"-apple-system,'Segoe UI',sans-serif",display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -435,9 +441,9 @@ function MainApp({ role }) {
                 ))}
               </div>
               <Canvas
-                camera={{position:[0,1.5,isMobile?6.5:5.2],fov:isMobile?42:38}}
-                gl={{antialias:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}}
-                dpr={[1,isMobile?1:1.5]}
+                camera={camMain}
+                gl={glConfig}
+                dpr={dprConfig}
                 style={{background:C.bg}}
                 performance={{min:0.5}}
               >
@@ -456,9 +462,9 @@ function MainApp({ role }) {
                 Ø {dia} mm · {vol} cm³
               </div>
               <Canvas
-                camera={{position:[0,0,0.25],fov:35}}
-                gl={{antialias:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}}
-                dpr={[1,isMobile?1:1.5]}
+                camera={camTumor}
+                gl={glConfig}
+                dpr={dprConfig}
                 style={{background:C.bg}}
                 performance={{min:0.5}}
               >
@@ -600,7 +606,7 @@ function MainApp({ role }) {
             {isDoctor ? (
               <textarea
                 value={interpretations[step]}
-                onChange={e=>{const n=[...interpretations];n[step]=e.target.value;setInterpretations(n);try{localStorage.setItem('rv3d_interpretations',JSON.stringify(n));}catch{};}}
+                onChange={e=>{const n=[...interpretations];n[step]=e.target.value;setInterpretations(n);clearTimeout(saveRef.current);saveRef.current=setTimeout(()=>{try{localStorage.setItem('rv3d_interpretations',JSON.stringify(n));}catch{}},500);}}
                 placeholder={`Observations pour "${d.label}"…`}
                 rows={4}
                 style={{width:'100%',padding:'10px 12px',borderRadius:'8px',border:`1px solid ${interpretations[step]?'rgba(6,214,160,0.35)':C.border}`,background:'rgba(5,10,18,0.5)',color:C.text,fontSize:'11px',fontFamily:'monospace',resize:'vertical',outline:'none',boxSizing:'border-box',lineHeight:1.6,transition:'border-color 0.2s'}}
