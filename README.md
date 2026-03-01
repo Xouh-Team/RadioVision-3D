@@ -6,6 +6,7 @@
 
 [![React](https://img.shields.io/badge/React-18.2-61dafb?logo=react)](https://reactjs.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-0.162-000000?logo=three.js)](https://threejs.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.2-646cff?logo=vite)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 </div>
@@ -30,21 +31,20 @@
 
 ### Prérequis
 
-- **Node.js** >= 14.0.0
-- **npm** >= 6.0.0
+- **Node.js** >= 18.0.0
+- **npm** >= 9.0.0
 
 ### Installation
 
 ```bash
-
 # 1. Installer les dépendances
 npm install
 
 # 2. Lancer le serveur de développement
-npm start
+npm run dev
 ```
 
-L'application s'ouvrira automatiquement sur **`http://localhost:3000`**
+L'application sera accessible sur **`http://localhost:5173`**
 
 ---
 
@@ -77,6 +77,7 @@ Deux méthodes pour importer vos modèles anatomiques :
 
 | Technologie | Version | Rôle |
 |------------|---------|------|
+| **Vite** | 5.2 | Build tool & dev server |
 | **React** | 18.2 | Framework UI |
 | **React Three Fiber** | 8.15 | Intégration React ↔ Three.js |
 | **Three.js** | 0.162 | Moteur de rendu 3D WebGL |
@@ -96,11 +97,12 @@ Deux méthodes pour importer vos modèles anatomiques :
 ```
 RadioVision-3D/
 ├── public/
-│   ├── index.html              # Point d'entrée HTML
 │   └── models/                 # Dossier pour modèles 3D (optionnel)
 ├── src/
-│   ├── index.js                # Bootstrap React
-│   └── App.js                  # Composant principal (logique 3D + UI)
+│   ├── index.jsx               # Bootstrap React
+│   └── App.jsx                 # Composant principal (logique 3D + UI)
+├── index.html                  # Point d'entrée HTML (Vite)
+├── vite.config.js              # Configuration Vite
 ├── package.json                # Dépendances et scripts
 ├── README.md                   # Documentation
 └── LICENSE                     # Licence Apache 2.0
