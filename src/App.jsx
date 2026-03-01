@@ -128,53 +128,11 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
       }
     }, undefined, (err) => console.error('GLB error:', err));
 
-    return () => { if (glbUrl.startsWith('blob:')) URL.revokeObjectURL(glbUrl); };
+    return () => {};
   }, [glbUrl, onBoundsCalculated]);
 
   if (!model) return null;
   return <primitive object={model} />;
-}
-
-/* ── Fallback body ── */
-function FallbackBody() {
-  const heartRef = useRef();
-  useFrame(({ clock }) => {
-    if (heartRef.current) heartRef.current.scale.setScalar(1 + Math.abs(Math.sin(clock.getElapsedTime() * 4)) * 0.1);
-  });
-
-  const mat = useMemo(() => makeTranspMat(new THREE.Color('#c4a882'), 0.22), []);
-  const armMat = useMemo(() => makeTranspMat(new THREE.Color('#c4a882'), 0.18), []);
-  const lungMat = useMemo(() => makeTranspMat(new THREE.Color('#4a8ab5'), 0.12), []);
-  const heartMat = useMemo(() => makeTranspMat(new THREE.Color('#c45555'), 0.2), []);
-  const boneMat = useMemo(() => makeTranspMat(new THREE.Color('#8899aa'), 0.08), []);
-
-  const profile = useMemo(() => [
-    [0.0,2.95],[0.12,2.92],[0.25,2.80],[0.28,2.65],[0.27,2.50],
-    [0.24,2.35],[0.22,2.20],[0.13,2.10],[0.12,2.02],[0.20,1.92],
-    [0.42,1.84],[0.46,1.78],[0.43,1.68],[0.40,1.55],[0.36,1.42],
-    [0.33,1.28],[0.36,1.12],[0.40,1.0],[0.42,0.90],[0.38,0.80],
-    [0.22,0.75],[0.19,0.65],[0.18,0.50],[0.16,0.38],[0.14,0.28],
-    [0.13,0.18],[0.08,0.06],[0.09,0.01],[0.06,0.0],
-  ].map(([r,y]) => new THREE.Vector2(r,y)), []);
-  const latheGeo = useMemo(() => new THREE.LatheGeometry(profile, 48), [profile]);
-
-  return (
-    <group>
-      <mesh geometry={latheGeo} material={mat} />
-      {[-1,1].map(s => (
-        <group key={s}>
-          <mesh position={[s*0.48,1.88,0]} material={armMat}><sphereGeometry args={[0.1,16,16]}/></mesh>
-          <mesh position={[s*0.55,1.58,0]} rotation={[0,0,s*0.1]} material={armMat}><cylinderGeometry args={[0.075,0.065,0.5,12]}/></mesh>
-          <mesh position={[s*0.58,1.3,0]} material={armMat}><sphereGeometry args={[0.065,12,12]}/></mesh>
-          <mesh position={[s*0.60,1.02,0]} rotation={[0,0,s*0.06]} material={armMat}><cylinderGeometry args={[0.06,0.045,0.48,12]}/></mesh>
-        </group>
-      ))}
-      <mesh position={[-0.18,1.72,0.02]} scale={[0.75,1.1,0.65]} material={lungMat}><sphereGeometry args={[0.16,20,20]}/></mesh>
-      <mesh position={[0.18,1.72,0.02]} scale={[0.85,1.1,0.65]} material={lungMat}><sphereGeometry args={[0.16,20,20]}/></mesh>
-      <mesh ref={heartRef} position={[-0.04,1.68,0.1]} scale={[1,1.2,0.9]} material={heartMat}><sphereGeometry args={[0.07,16,16]}/></mesh>
-      <mesh position={[0,1.4,-0.18]} material={boneMat}><cylinderGeometry args={[0.025,0.025,1.4,8]}/></mesh>
-    </group>
-  );
 }
 
 
@@ -185,7 +143,7 @@ function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated })
       <ambientLight intensity={0.7} color="#445566" />
       <directionalLight position={[3,5,4]} intensity={1.2} color="#ffeedd" />
       <directionalLight position={[-3,2,3]} intensity={0.4} color="#4a90d9" />
-      {glbUrl ? <LoadedModel glbUrl={glbUrl} onBoundsCalculated={onBoundsCalculated}/> : <FallbackBody/>}
+      <LoadedModel glbUrl={glbUrl} onBoundsCalculated={onBoundsCalculated}/>
       <group position={tumorPosition}><Tumor scale={tumorScale}/></group>
       <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.05,0]}>
         <planeGeometry args={[6,6,20,20]}/>
@@ -342,9 +300,7 @@ function MainApp({ role }) {
   const isDoctor = role === 'doctor';
   const [step,setStep]=useState(0);
   const [playing,setPlaying]=useState(false);
-  const [glbUrl,setGlbUrl]=useState(import.meta.env.BASE_URL + 'models/female_body.glb');
-  const [modelStatus,setModelStatus]=useState('loading');
-  const [dragOver,setDragOver]=useState(false);
+  const glbUrl = import.meta.env.BASE_URL + 'models/female_body.glb';
   const [tumorPos,setTumorPos]=useState([0,1.5,0.1]);
   const [interpretations,setInterpretations]=useState(()=>{
     try{const s=localStorage.getItem('rv3d_interpretations');return s?JSON.parse(s):Array(TUMOR_DATA.length).fill('');}
@@ -353,7 +309,6 @@ function MainApp({ role }) {
   const [hoveredSession,setHoveredSession]=useState(null);
   const ivRef=useRef(null);
   const saveRef=useRef(null);
-  const fileRef=useRef(null);
   const {isMobile,isTablet,isDesktop}=useResponsive();
   const isVertical = !isDesktop; // mobile & tablet: layout vertical (3D top, panel bottom)
 
@@ -370,14 +325,7 @@ function MainApp({ role }) {
   };
   useEffect(()=>()=>{clearInterval(ivRef.current);clearTimeout(saveRef.current);},[]);
 
-  const handleFile=(file)=>{
-    if(!file||!file.name.match(/\.(glb|gltf)$/i))return;
-    setModelStatus('loading');
-    const newUrl=URL.createObjectURL(file);
-    setGlbUrl(prev=>{if(prev&&prev.startsWith('blob:'))URL.revokeObjectURL(prev);return newUrl;});
-  };
-  const handleDrop=(e)=>{e.preventDefault();setDragOver(false);if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);};
-  const onBoundsCalculated=useCallback((bounds)=>{setTumorPos(bounds.tumorPosition);setModelStatus('loaded');},[]);
+  const onBoundsCalculated=useCallback((bounds)=>{setTumorPos(bounds.tumorPosition);},[]);
 
   const compactStats = isVertical;
   const glConfig=useMemo(()=>({antialias:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}),[]);
@@ -398,10 +346,6 @@ function MainApp({ role }) {
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:isMobile?'6px':'10px'}}>
-          <button onClick={()=>fileRef.current?.click()} style={{padding:isMobile?'5px 10px':'6px 14px',borderRadius:'8px',border:`1px solid ${C.accent}`,background:modelStatus==='loaded'?C.accentDim:'transparent',color:C.accent,cursor:'pointer',fontSize:'11px',fontFamily:'monospace'}}>
-            {modelStatus==='loaded'?'✓ Chargé':modelStatus==='loading'?'⏳...':'📂 .glb'}
-          </button>
-          <input ref={fileRef} type="file" accept=".glb,.gltf" style={{display:'none'}} onChange={(e)=>e.target.files[0]&&handleFile(e.target.files[0])}/>
           {!isMobile&&(
             <div style={{display:'flex',alignItems:'center',gap:'7px',padding:'4px 12px',borderRadius:'16px',background:isDoctor?C.accentDim:'rgba(74,144,217,0.12)',border:isDoctor?'1px solid rgba(6,214,160,0.2)':'1px solid rgba(74,144,217,0.2)'}}>
               <div style={{width:'6px',height:'6px',borderRadius:'50%',background:isDoctor?C.accent:'#4a90d9',boxShadow:`0 0 8px ${isDoctor?C.accent:'#4a90d9'}`}}/>
@@ -415,15 +359,7 @@ function MainApp({ role }) {
       <div style={{flex:1,display:'flex',flexDirection:isVertical?'column':'row',overflow:'hidden'}}>
 
         {/* ── 3D Viewport + Timeline ── */}
-        <div style={{flex:isVertical?'1 1 0%':'1',minHeight:0,position:'relative',display:'flex',flexDirection:'column'}}
-          onDrop={handleDrop} onDragOver={(e)=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)}>
-
-          {dragOver&&(
-            <div style={{position:'absolute',inset:0,zIndex:100,background:'rgba(6,214,160,0.08)',border:'3px dashed rgba(6,214,160,0.5)',borderRadius:'12px',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'10px',pointerEvents:'none'}}>
-              <div style={{fontSize:'48px'}}>🫁</div>
-              <div style={{fontSize:'16px',color:C.accent,fontWeight:600}}>Déposer le modèle .glb ici</div>
-            </div>
-          )}
+        <div style={{flex:isVertical?'1 1 0%':'1',minHeight:0,position:'relative',display:'flex',flexDirection:'column'}}>
 
           {/* Split canvas area */}
           <div style={{flex:1,minHeight:0,display:'flex',flexDirection:isMobile?'column':'row'}}>
@@ -628,7 +564,6 @@ function MainApp({ role }) {
           {isDesktop&&(
             <div style={{marginTop:'auto',padding:'9px 11px',borderRadius:'7px',background:'rgba(6,214,160,0.04)',border:'1px solid rgba(6,214,160,0.1)',fontSize:'9px',color:C.textMuted,lineHeight:1.5,flexShrink:0}}>
               ⓘ Prototype — données simulées. Tumeur au poumon droit.
-              {modelStatus==='loaded'&&' Modèle GLB chargé.'}
             </div>
           )}
         </div>
