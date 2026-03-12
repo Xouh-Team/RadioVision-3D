@@ -132,7 +132,7 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
 
 
 /* ── Scene ── */
-function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated }) {
+const SceneContent = React.memo(function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated }) {
   return (
     <>
       <ambientLight intensity={0.7} color="#445566" />
@@ -147,10 +147,10 @@ function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated })
       <OrbitControls enableDamping dampingFactor={0.08} minDistance={1.5} maxDistance={12} target={[0,1.3,0]} maxPolarAngle={Math.PI*0.85}/>
     </>
   );
-}
+});
 
 /* ── Tumor-only scene ── */
-function TumorOnlyScene({ tumorScale }) {
+const TumorOnlyScene = React.memo(function TumorOnlyScene({ tumorScale }) {
   return (
     <>
       <pointLight position={[0, 0, 0.5]} intensity={1.0} color={C.tumorGlow} distance={2} />
@@ -158,22 +158,23 @@ function TumorOnlyScene({ tumorScale }) {
       <OrbitControls enableDamping dampingFactor={0.08} minDistance={0.05} maxDistance={1} />
     </>
   );
-}
+});
 
 /* ── Responsive hook ── */
 function useResponsive() {
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   useEffect(() => {
-    const handler = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    let timer;
+    const handler = () => { clearTimeout(timer); timer = setTimeout(() => setSize({ w: window.innerWidth, h: window.innerHeight }), 150); };
     window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
+    return () => { window.removeEventListener('resize', handler); clearTimeout(timer); };
   }, []);
   // mobile: <640, tablet: 640-1024, desktop: >1024
   return useMemo(() => ({ isMobile: size.w < 640, isTablet: size.w >= 640 && size.w < 1024, isDesktop: size.w >= 1024, width: size.w, height: size.h }), [size.w, size.h]);
 }
 
 /* ── Stat ── */
-function Stat({label,value,unit,trend,color,compact}) {
+const Stat = React.memo(function Stat({label,value,unit,trend,color,compact}) {
   return (
     <div style={{background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:compact?'8px':'12px',padding:compact?'10px 12px':'14px 16px',flex:compact?1:undefined,minWidth:compact?0:undefined}}>
       <div style={{fontSize:compact?'8px':'10px',textTransform:'uppercase',letterSpacing:'0.1em',color:C.textMuted,marginBottom:compact?'3px':'5px',fontFamily:'monospace'}}>{label}</div>
@@ -184,7 +185,7 @@ function Stat({label,value,unit,trend,color,compact}) {
       {trend&&<div style={{marginTop:'2px',fontSize:compact?'9px':'11px',color:trend.startsWith('-')?C.positive:C.warning,fontFamily:'monospace'}}>{trend}</div>}
     </div>
   );
-}
+});
 
 /* ═══ LOGIN ═══ */
 function LoginScreen({ onLogin }) {
@@ -331,7 +332,7 @@ function MainApp({ role }) {
     <div ref={containerRef} style={{width:'100vw',height:'100vh',background:C.bg,color:C.text,fontFamily:"-apple-system,'Segoe UI',sans-serif",display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
       {/* ── Header ── */}
-      <header style={{padding:isMobile?'10px 14px':'12px 20px',borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'rgba(5,10,18,0.85)',backdropFilter:'blur(12px)',zIndex:10}}>
+      <header style={{padding:isMobile?'10px 14px':'12px 20px',borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'rgba(5,10,18,0.85)',zIndex:10}}>
         <div style={{display:'flex',alignItems:'center',gap:isMobile?'8px':'10px'}}>
           <div style={{width:'32px',height:'32px',borderRadius:'8px',background:`linear-gradient(135deg,${C.accent},#4a90d9)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',color:'#fff'}}>◎</div>
           <div>
