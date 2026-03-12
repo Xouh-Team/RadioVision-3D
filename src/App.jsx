@@ -15,16 +15,16 @@ const TUMOR_DATA = [
 ];
 
 const C = {
-  bg: '#050a12', bgCard: '#0c1220', accent: '#06d6a0', accentDim: 'rgba(6,214,160,0.12)',
-  tumor: '#f57622', tumorGlow: '#e09d50',
-  text: '#e8edf5', textMuted: '#6b7a90', border: '#141e30', sliderTrack: '#1a2540',
-  positive: '#06d6a0', warning: '#f59e0b',
+  bg: '#f0f4f8', bgCard: '#ffffff', bgOverlay: 'rgba(255,255,255,0.92)', accent: '#2563eb', accentDim: 'rgba(37,99,235,0.08)',
+  tumor: '#2563eb', tumorGlow: '#93c5fd',
+  text: '#1e293b', textMuted: '#64748b', border: '#e2e8f0', sliderTrack: '#cbd5e1',
+  positive: '#16a34a', warning: '#d97706', patient: '#0891b2',
 };
 
 /* ═══ Material ═══ */
 function makeTranspMat(color, opacity = 0.3) {
   return new THREE.MeshBasicMaterial({
-    color: color || new THREE.Color('#aabbcc'),
+    color: color || new THREE.Color('#2d5986'),
     transparent: true,
     opacity,
     depthWrite: false,
@@ -90,16 +90,15 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
       // Adaptive opacity based on mesh count
       let meshCount = 0;
       root.traverse((child) => { if (child.isMesh) meshCount++; });
-      const baseOpacity = meshCount > 50 ? 0.15 : meshCount > 20 ? 0.25 : 0.35;
+      const baseOpacity = meshCount > 50 ? 0.35 : meshCount > 20 ? 0.5 : 0.65;
 
       root.traverse((child) => {
         if (child.isMesh) {
-          const origColor = child.material.color ? child.material.color.clone() : new THREE.Color('#aabbcc');
           // Free GPU resources from original materials
           if (child.material.map) { child.material.map.dispose(); }
           if (child.material.normalMap) { child.material.normalMap.dispose(); }
           child.material.dispose();
-          child.material = makeTranspMat(origColor, baseOpacity);
+          child.material = makeTranspMat(new THREE.Color('#818283'), baseOpacity);
           child.frustumCulled = true;
           child.raycast = () => {}; // disable raycasting for perf
         }
@@ -135,9 +134,9 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
 const SceneContent = React.memo(function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated }) {
   return (
     <>
-      <ambientLight intensity={0.7} color="#445566" />
-      <directionalLight position={[3,5,4]} intensity={1.2} color="#ffeedd" />
-      <directionalLight position={[-3,2,3]} intensity={0.4} color="#4a90d9" />
+      <ambientLight intensity={1.0} color="#d0dff0" />
+      <directionalLight position={[3,5,4]} intensity={1.0} color="#ffffff" />
+      <directionalLight position={[-3,2,3]} intensity={0.3} color="#a0c4e8" />
       <LoadedModel glbUrl={glbUrl} onBoundsCalculated={onBoundsCalculated}/>
       <group position={tumorPosition}><Tumor scale={tumorScale}/></group>
       <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.05,0]}>
@@ -196,7 +195,7 @@ function LoginScreen({ onLogin }) {
 
   const inputStyle = {
     width: '100%', padding: '10px 14px', borderRadius: '8px',
-    border: `1px solid ${C.border}`, background: 'rgba(5,10,18,0.6)',
+    border: `1px solid ${C.border}`, background: 'rgba(240,244,248,0.9)',
     color: C.text, fontSize: '13px', fontFamily: 'monospace',
     outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s',
   };
@@ -215,17 +214,17 @@ function LoginScreen({ onLogin }) {
     <div style={{ width: '100vw', height: '100vh', background: C.bg, color: C.text, fontFamily: "-apple-system,'Segoe UI',sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
 
       {/* Fond grille */}
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(rgba(6,214,160,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,0.03) 1px,transparent 1px)`, backgroundSize: '40px 40px', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(rgba(37,99,235,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,0.04) 1px,transparent 1px)`, backgroundSize: '40px 40px', pointerEvents: 'none' }} />
 
       {/* Halo central */}
-      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '500px', height: '500px', background: 'radial-gradient(circle,rgba(6,214,160,0.07) 0%,transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '500px', height: '500px', background: 'radial-gradient(circle,rgba(37,99,235,0.05) 0%,transparent 70%)', pointerEvents: 'none' }} />
 
       {/* Card */}
       <div style={{ position: 'relative', width: '100%', maxWidth: '380px', margin: '0 16px', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: '16px', padding: '36px 32px', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `linear-gradient(135deg,${C.accent},#4a90d9)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', color: '#fff', flexShrink: 0 }}>◎</div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `linear-gradient(135deg,${C.accent},${C.patient})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', color: '#fff', flexShrink: 0 }}>◎</div>
           <div>
             <div style={{ fontSize: '16px', fontWeight: 700 }}>RadioVision 3D</div>
             <div style={{ fontSize: '10px', color: C.textMuted, fontFamily: 'monospace', marginTop: '1px' }}>Accès sécurisé — Espace clinique</div>
@@ -265,17 +264,17 @@ function LoginScreen({ onLogin }) {
             </div>
           )}
 
-          <button type="submit" disabled={loading} style={{ marginTop: '4px', padding: '11px', borderRadius: '9px', border: 'none', background: loading ? C.accentDim : `linear-gradient(135deg,${C.accent},#4a90d9)`, color: loading ? C.accent : '#fff', fontWeight: 700, fontSize: '13px', cursor: loading ? 'default' : 'pointer', fontFamily: 'monospace', letterSpacing: '0.05em', transition: 'opacity 0.2s' }}>
+          <button type="submit" disabled={loading} style={{ marginTop: '4px', padding: '11px', borderRadius: '9px', border: 'none', background: loading ? C.accentDim : `linear-gradient(135deg,${C.accent},${C.patient})`, color: loading ? C.accent : '#fff', fontWeight: 700, fontSize: '13px', cursor: loading ? 'default' : 'pointer', fontFamily: 'monospace', letterSpacing: '0.05em', transition: 'opacity 0.2s' }}>
             {loading ? '⏳ Connexion…' : 'Se connecter'}
           </button>
 
         </form>
 
         {/* Footer */}
-        <div style={{ marginTop: '24px', padding: '10px 12px', borderRadius: '8px', background: 'rgba(6,214,160,0.04)', border: '1px solid rgba(6,214,160,0.1)', fontSize: '9px', color: C.textMuted, lineHeight: 1.7, fontFamily: 'monospace' }}>
+        <div style={{ marginTop: '24px', padding: '10px 12px', borderRadius: '8px', background: C.accentDim, border: `1px solid rgba(37,99,235,0.15)`, fontSize: '9px', color: C.textMuted, lineHeight: 1.7, fontFamily: 'monospace' }}>
           ⓘ Comptes démo :<br />
           Médecin — <span style={{color:C.accent}}>dr.martin</span> / <span style={{color:C.accent}}>radiologie</span><br />
-          Patient — <span style={{color:'#4a90d9'}}>patient-2847</span> / <span style={{color:'#4a90d9'}}>patient2847</span>
+          Patient — <span style={{color:C.patient}}>patient-2847</span> / <span style={{color:C.patient}}>patient2847</span>
         </div>
 
         {/* Coin décoratif */}
@@ -332,9 +331,9 @@ function MainApp({ role }) {
     <div ref={containerRef} style={{width:'100vw',height:'100vh',background:C.bg,color:C.text,fontFamily:"-apple-system,'Segoe UI',sans-serif",display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
       {/* ── Header ── */}
-      <header style={{padding:isMobile?'10px 14px':'12px 20px',borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'rgba(5,10,18,0.85)',zIndex:10}}>
+      <header style={{padding:isMobile?'10px 14px':'12px 20px',borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'rgba(255,255,255,0.95)',zIndex:10}}>
         <div style={{display:'flex',alignItems:'center',gap:isMobile?'8px':'10px'}}>
-          <div style={{width:'32px',height:'32px',borderRadius:'8px',background:`linear-gradient(135deg,${C.accent},#4a90d9)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',color:'#fff'}}>◎</div>
+          <div style={{width:'32px',height:'32px',borderRadius:'8px',background:`linear-gradient(135deg,${C.accent},${C.patient})`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',color:'#fff'}}>◎</div>
           <div>
             <div style={{fontSize:'14px',fontWeight:600}}>RadioVision 3D</div>
             {!isMobile&&<div style={{fontSize:'10px',color:C.textMuted,fontFamily:'monospace'}}>Visualisation tumorale</div>}
@@ -342,9 +341,9 @@ function MainApp({ role }) {
         </div>
         <div style={{display:'flex',alignItems:'center',gap:isMobile?'6px':'10px'}}>
           {!isMobile&&(
-            <div style={{display:'flex',alignItems:'center',gap:'7px',padding:'4px 12px',borderRadius:'16px',background:isDoctor?C.accentDim:'rgba(74,144,217,0.12)',border:isDoctor?'1px solid rgba(6,214,160,0.2)':'1px solid rgba(74,144,217,0.2)'}}>
-              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:isDoctor?C.accent:'#4a90d9',boxShadow:`0 0 8px ${isDoctor?C.accent:'#4a90d9'}`}}/>
-              <span style={{fontSize:'11px',color:isDoctor?C.accent:'#4a90d9',fontFamily:'monospace'}}>{isDoctor?'Dr. Martin':'Patient #2847'}</span>
+            <div style={{display:'flex',alignItems:'center',gap:'7px',padding:'4px 12px',borderRadius:'16px',background:isDoctor?C.accentDim:'rgba(8,145,178,0.08)',border:isDoctor?'1px solid rgba(37,99,235,0.2)':'1px solid rgba(8,145,178,0.2)'}}>
+              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:isDoctor?C.accent:C.patient,boxShadow:`0 0 8px ${isDoctor?C.accent:C.patient}`}}/>
+              <span style={{fontSize:'11px',color:isDoctor?C.accent:C.patient,fontFamily:'monospace'}}>{isDoctor?'Dr. Martin':'Patient #2847'}</span>
             </div>
           )}
         </div>
@@ -361,12 +360,12 @@ function MainApp({ role }) {
 
             {/* Panel 1 — Corps + Tumeur */}
             <div ref={view1Ref} style={{flex:1,minHeight:0,position:'relative',background:C.bg,borderRight:isMobile?'none':`1px solid ${C.border}`,borderBottom:isMobile?`1px solid ${C.border}`:'none'}}>
-              <div style={{position:'absolute',top:'8px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'3px 10px',borderRadius:'6px',background:'rgba(5,10,18,0.75)',border:`1px solid ${C.border}`,fontSize:'9px',color:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
+              <div style={{position:'absolute',top:'8px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'3px 10px',borderRadius:'6px',background:C.bgOverlay,border:`1px solid ${C.border}`,fontSize:'9px',color:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
                 Corps + Tumeur
               </div>
               <div style={{position:'absolute',top:'36px',left:'10px',display:'flex',flexDirection:'column',gap:'5px',zIndex:10}}>
                 {[{c:'#c4a882',l:'Corps'},{c:C.tumor,l:'Tumeur'}].map(({c,l})=>(
-                  <div key={l} style={{display:'flex',alignItems:'center',gap:'6px',padding:'3px 8px',borderRadius:'6px',background:'rgba(5,10,18,0.8)',border:`1px solid ${C.border}`,fontSize:'10px',color:C.textMuted,fontFamily:'monospace'}}>
+                  <div key={l} style={{display:'flex',alignItems:'center',gap:'6px',padding:'3px 8px',borderRadius:'6px',background:C.bgOverlay,border:`1px solid ${C.border}`,fontSize:'10px',color:C.textMuted,fontFamily:'monospace'}}>
                     <div style={{width:'7px',height:'7px',borderRadius:'50%',background:c,boxShadow:`0 0 5px ${c}44`}}/>{l}
                   </div>
                 ))}
@@ -375,10 +374,10 @@ function MainApp({ role }) {
 
             {/* Panel 2 — Tumeur seule */}
             <div ref={view2Ref} style={{flex:1,minHeight:0,position:'relative',background:C.bg}}>
-              <div style={{position:'absolute',top:'8px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'3px 10px',borderRadius:'6px',background:'rgba(5,10,18,0.75)',border:`1px solid ${C.border}`,fontSize:'9px',color:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
+              <div style={{position:'absolute',top:'8px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'3px 10px',borderRadius:'6px',background:C.bgOverlay,border:`1px solid ${C.border}`,fontSize:'9px',color:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
                 Tumeur isolée
               </div>
-              <div style={{position:'absolute',bottom:'10px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'4px 12px',borderRadius:'8px',background:'rgba(5,10,18,0.8)',border:`1px solid rgba(239,68,68,0.3)`,fontSize:'10px',color:C.tumor,fontFamily:'monospace',whiteSpace:'nowrap'}}>
+              <div style={{position:'absolute',bottom:'10px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'4px 12px',borderRadius:'8px',background:C.bgOverlay,border:`1px solid rgba(239,68,68,0.4)`,fontSize:'10px',color:C.tumor,fontFamily:'monospace',whiteSpace:'nowrap'}}>
                 Ø {dia} mm · {vol} cm³
               </div>
             </div>
@@ -404,17 +403,17 @@ function MainApp({ role }) {
                       style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',position:'relative'}}>
                       {/* Tooltip interprétation */}
                       {hoveredSession===i && interpretations[i] && (
-                        <div style={{position:'absolute',bottom:'calc(100% + 10px)',left:'50%',transform:'translateX(-50%)',width:'220px',padding:'10px 12px',borderRadius:'9px',background:C.bgCard,border:`1px solid ${isDoctor?'rgba(6,214,160,0.3)':'rgba(74,144,217,0.3)'}`,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',zIndex:200,pointerEvents:'none'}}>
-                          <div style={{fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.1em',color:isDoctor?C.accent:'#4a90d9',fontFamily:'monospace',marginBottom:'5px'}}>
+                        <div style={{position:'absolute',bottom:'calc(100% + 10px)',left:'50%',transform:'translateX(-50%)',width:'220px',padding:'10px 12px',borderRadius:'9px',background:C.bgCard,border:`1px solid ${isDoctor?'rgba(37,99,235,0.3)':'rgba(8,145,178,0.3)'}`,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',zIndex:200,pointerEvents:'none'}}>
+                          <div style={{fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.1em',color:isDoctor?C.accent:C.patient,fontFamily:'monospace',marginBottom:'5px'}}>
                             {isDoctor?'◎ Mon interprétation':'◎ Interprétation médicale'}
                           </div>
                           <div style={{fontSize:'11px',color:C.text,lineHeight:1.55}}>{interpretations[i]}</div>
                           <div style={{fontSize:'9px',color:C.textMuted,fontFamily:'monospace',marginTop:'6px'}}>{item.date} · {item.label}</div>
                           {/* Flèche */}
-                          <div style={{position:'absolute',bottom:'-5px',left:'50%',transform:'translateX(-50%)',width:'8px',height:'8px',background:C.bgCard,border:`1px solid ${isDoctor?'rgba(6,214,160,0.3)':'rgba(74,144,217,0.3)'}`,borderTop:'none',borderLeft:'none',rotate:'45deg'}}/>
+                          <div style={{position:'absolute',bottom:'-5px',left:'50%',transform:'translateX(-50%)',width:'8px',height:'8px',background:C.bgCard,border:`1px solid ${isDoctor?'rgba(37,99,235,0.3)':'rgba(8,145,178,0.3)'}`,borderTop:'none',borderLeft:'none',rotate:'45deg'}}/>
                         </div>
                       )}
-                      <div style={{width:i===step?'8px':'5px',height:i===step?'8px':'5px',borderRadius:'50%',background:i<=step?C.accent:C.sliderTrack,transition:'all 0.3s',boxShadow:i===step?`0 0 8px ${C.accent}`:interpretations[i]?`0 0 6px rgba(74,144,217,0.6)`:'none',outline:interpretations[i]?'2px solid rgba(74,144,217,0.4)':'none',outlineOffset:'2px'}}/>
+                      <div style={{width:i===step?'8px':'5px',height:i===step?'8px':'5px',borderRadius:'50%',background:i<=step?C.accent:C.sliderTrack,transition:'all 0.3s',boxShadow:i===step?`0 0 8px ${C.accent}`:interpretations[i]?`0 0 6px rgba(8,145,178,0.6)`:'none',outline:interpretations[i]?'2px solid rgba(8,145,178,0.4)':'none',outlineOffset:'2px'}}/>
                       {!isMobile&&(
                         <span style={{fontSize:'8px',color:i===step?C.accent:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
                           {item.date.split(' ').slice(0,2).join(' ')}
@@ -458,7 +457,7 @@ function MainApp({ role }) {
               <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                 <span style={{fontSize:'11px',color:C.accent,fontFamily:'monospace',fontWeight:600}}>{Math.round(pct)}%</span>
                 <div style={{width:isMobile?'50px':'80px',height:'5px',background:C.sliderTrack,borderRadius:'3px',overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},#4a90d9)`,borderRadius:'3px',transition:'width 0.5s'}}/>
+                  <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},${C.patient})`,borderRadius:'3px',transition:'width 0.5s'}}/>
                 </div>
               </div>
             )}
@@ -483,7 +482,7 @@ function MainApp({ role }) {
                   <span style={{fontSize:'11px',color:C.accent,fontFamily:'monospace'}}>{Math.round(pct)}%</span>
                 </div>
                 <div style={{height:'5px',background:C.sliderTrack,borderRadius:'3px',overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},#4a90d9)`,borderRadius:'3px',transition:'width 0.5s'}}/>
+                  <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},${C.patient})`,borderRadius:'3px',transition:'width 0.5s'}}/>
                 </div>
               </div>
             </>
@@ -507,10 +506,10 @@ function MainApp({ role }) {
           {/* Interprétation médicale */}
           <div style={{height:'1px',background:C.border,flexShrink:0}}/>
           <div style={{flexShrink:0}}>
-            <div style={{fontSize:'10px',textTransform:'uppercase',letterSpacing:'0.1em',color:isDoctor?C.accent:'#4a90d9',fontFamily:'monospace',marginBottom:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
+            <div style={{fontSize:'10px',textTransform:'uppercase',letterSpacing:'0.1em',color:isDoctor?C.accent:C.patient,fontFamily:'monospace',marginBottom:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
               <span>◎</span>
               <span>{isDoctor?'Interprétation médicale':'Avis du médecin'}</span>
-              {interpretations[step]&&!isDoctor&&<span style={{marginLeft:'auto',fontSize:'8px',color:'rgba(74,144,217,0.7)',fontFamily:'monospace'}}>survol timeline</span>}
+              {interpretations[step]&&!isDoctor&&<span style={{marginLeft:'auto',fontSize:'8px',color:`rgba(8,145,178,0.7)`,fontFamily:'monospace'}}>survol timeline</span>}
             </div>
             {isDoctor ? (
               <textarea
@@ -518,16 +517,16 @@ function MainApp({ role }) {
                 onChange={e=>{const n=[...interpretations];n[step]=e.target.value;setInterpretations(n);clearTimeout(saveRef.current);saveRef.current=setTimeout(()=>{try{localStorage.setItem('rv3d_interpretations',JSON.stringify(n));}catch{}},500);}}
                 placeholder={`Observations pour "${d.label}"…`}
                 rows={4}
-                style={{width:'100%',padding:'10px 12px',borderRadius:'8px',border:`1px solid ${interpretations[step]?'rgba(6,214,160,0.35)':C.border}`,background:'rgba(5,10,18,0.5)',color:C.text,fontSize:'11px',fontFamily:'monospace',resize:'vertical',outline:'none',boxSizing:'border-box',lineHeight:1.6,transition:'border-color 0.2s'}}
+                style={{width:'100%',padding:'10px 12px',borderRadius:'8px',border:`1px solid ${interpretations[step]?'rgba(37,99,235,0.4)':C.border}`,background:'rgba(240,244,248,0.9)',color:C.text,fontSize:'11px',fontFamily:'monospace',resize:'vertical',outline:'none',boxSizing:'border-box',lineHeight:1.6,transition:'border-color 0.2s'}}
                 onFocus={e=>e.target.style.borderColor=C.accent}
-                onBlur={e=>e.target.style.borderColor=interpretations[step]?'rgba(6,214,160,0.35)':C.border}
+                onBlur={e=>e.target.style.borderColor=interpretations[step]?'rgba(37,99,235,0.4)':C.border}
               />
             ) : interpretations[step] ? (
-              <div style={{padding:'10px 12px',borderRadius:'8px',background:'rgba(74,144,217,0.06)',border:'1px solid rgba(74,144,217,0.2)',fontSize:'11px',color:C.text,lineHeight:1.6,fontFamily:'monospace'}}>
+              <div style={{padding:'10px 12px',borderRadius:'8px',background:'rgba(8,145,178,0.06)',border:'1px solid rgba(8,145,178,0.2)',fontSize:'11px',color:C.text,lineHeight:1.6,fontFamily:'monospace'}}>
                 {interpretations[step]}
               </div>
             ) : (
-              <div style={{padding:'10px 12px',borderRadius:'8px',background:'rgba(5,10,18,0.3)',border:`1px dashed ${C.border}`,fontSize:'10px',color:C.textMuted,fontFamily:'monospace',textAlign:'center'}}>
+              <div style={{padding:'10px 12px',borderRadius:'8px',background:'rgba(240,244,248,0.6)',border:`1px dashed ${C.border}`,fontSize:'10px',color:C.textMuted,fontFamily:'monospace',textAlign:'center'}}>
                 Aucune interprétation pour cette séance.
               </div>
             )}
@@ -535,7 +534,7 @@ function MainApp({ role }) {
 
           {/* Footer — desktop only */}
           {isDesktop&&(
-            <div style={{marginTop:'auto',padding:'9px 11px',borderRadius:'7px',background:'rgba(6,214,160,0.04)',border:'1px solid rgba(6,214,160,0.1)',fontSize:'9px',color:C.textMuted,lineHeight:1.5,flexShrink:0}}>
+            <div style={{marginTop:'auto',padding:'9px 11px',borderRadius:'7px',background:C.accentDim,border:`1px solid rgba(37,99,235,0.15)`,fontSize:'9px',color:C.textMuted,lineHeight:1.5,flexShrink:0}}>
               ⓘ Prototype — données simulées. Tumeur au poumon droit.
             </div>
           )}
