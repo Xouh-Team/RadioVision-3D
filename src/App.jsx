@@ -574,10 +574,8 @@ function MainApp({ role }) {
 
 /* ═══ ROOT ═══ */
 export default function App() {
-  // Login désactivé en dev — remettre les lignes ci-dessous pour réactiver
-  // const [authenticated, setAuthenticated] = useState(false);
-  // const [role, setRole] = useState('patient');
-  // if (!authenticated) return <LoginScreen onLogin={(r) => { setRole(r); setAuthenticated(true); }} />;
-  // return <MainApp role={role} />;
-  return <MainApp role="doctor" />;
+  const [authenticated, setAuthenticated] = useState(false);
+  const [role, setRole] = useState('patient');
+  if (!authenticated) return <LoginScreen onLogin={(r) => { setRole(r); setAuthenticated(true); }} />;
+    return <MainApp role={role} />;
 }
