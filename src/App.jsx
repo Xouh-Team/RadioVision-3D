@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, View, Preload, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
@@ -16,18 +16,17 @@ const TUMOR_DATA = [
 
 const C = {
   bg: '#050a12', bgCard: '#0c1220', accent: '#06d6a0', accentDim: 'rgba(6,214,160,0.12)',
-  tumor: '#ef4444', tumorGlow: '#ff6b6b',
+  tumor: '#f57622', tumorGlow: '#e09d50',
   text: '#e8edf5', textMuted: '#6b7a90', border: '#141e30', sliderTrack: '#1a2540',
   positive: '#06d6a0', warning: '#f59e0b',
 };
 
-/* ═══ Optimized material — MeshPhong (no transmission = huge perf gain) ═══ */
+/* ═══ Material ═══ */
 function makeTranspMat(color, opacity = 0.3) {
-  return new THREE.MeshPhongMaterial({
+  return new THREE.MeshBasicMaterial({
     color: color || new THREE.Color('#aabbcc'),
     transparent: true,
     opacity,
-    side: THREE.FrontSide,
     depthWrite: false,
     shininess: 40,
     specular: new THREE.Color('#335577'),
@@ -52,6 +51,8 @@ function Tumor({ scale }) {
     return geo;
   }, []);
 
+  useEffect(() => () => { tumorGeo.dispose(); }, [tumorGeo]);
+
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
     const t = clock.getElapsedTime();
@@ -64,10 +65,6 @@ function Tumor({ scale }) {
       <mesh ref={coreRef} geometry={tumorGeo}>
         <meshStandardMaterial color={C.tumor} emissive={C.tumor} emissiveIntensity={0.8} roughness={0.3} />
       </mesh>
-      <mesh>
-        <sphereGeometry args={[0.06, 16, 16]} />
-        <meshBasicMaterial color={C.tumorGlow} transparent opacity={0.12} side={THREE.BackSide} />
-      </mesh>
     </group>
   );
 }
@@ -78,8 +75,10 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
 
   useEffect(() => {
     if (!glbUrl) return;
+    let cancelled = false;
     const loader = new GLTFLoader();
     loader.load(glbUrl, (gltf) => {
+      if (cancelled) return;
       const root = gltf.scene;
 
       // Bounds before transform
@@ -128,7 +127,7 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
       }
     }, undefined, (err) => console.error('GLB error:', err));
 
-    return () => {};
+    return () => { cancelled = true; };
   }, [glbUrl, onBoundsCalculated]);
 
   if (!model) return null;
@@ -137,7 +136,7 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
 
 
 /* ── Scene ── */
-function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated }) {
+const SceneContent = React.memo(function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated }) {
   return (
     <>
       <ambientLight intensity={0.7} color="#445566" />
@@ -146,41 +145,40 @@ function SceneContent({ tumorScale, glbUrl, tumorPosition, onBoundsCalculated })
       <LoadedModel glbUrl={glbUrl} onBoundsCalculated={onBoundsCalculated}/>
       <group position={tumorPosition}><Tumor scale={tumorScale}/></group>
       <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.05,0]}>
-        <planeGeometry args={[6,6,20,20]}/>
+        <planeGeometry args={[6,6,1,1]}/>
         <meshBasicMaterial color={C.accent} wireframe transparent opacity={0.03}/>
       </mesh>
       <OrbitControls enableDamping dampingFactor={0.08} minDistance={1.5} maxDistance={12} target={[0,1.3,0]} maxPolarAngle={Math.PI*0.85}/>
     </>
   );
-}
+});
 
 /* ── Tumor-only scene ── */
-function TumorOnlyScene({ tumorScale }) {
+const TumorOnlyScene = React.memo(function TumorOnlyScene({ tumorScale }) {
   return (
     <>
-      <ambientLight intensity={1.2} color="#334455" />
-      <directionalLight position={[2, 3, 2]} intensity={1.5} color="#ffeedd" />
       <pointLight position={[0, 0, 0.5]} intensity={1.0} color={C.tumorGlow} distance={2} />
       <Tumor scale={tumorScale} />
       <OrbitControls enableDamping dampingFactor={0.08} minDistance={0.05} maxDistance={1} />
     </>
   );
-}
+});
 
 /* ── Responsive hook ── */
 function useResponsive() {
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   useEffect(() => {
-    const handler = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    let timer;
+    const handler = () => { clearTimeout(timer); timer = setTimeout(() => setSize({ w: window.innerWidth, h: window.innerHeight }), 150); };
     window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
+    return () => { window.removeEventListener('resize', handler); clearTimeout(timer); };
   }, []);
   // mobile: <640, tablet: 640-1024, desktop: >1024
   return useMemo(() => ({ isMobile: size.w < 640, isTablet: size.w >= 640 && size.w < 1024, isDesktop: size.w >= 1024, width: size.w, height: size.h }), [size.w, size.h]);
 }
 
 /* ── Stat ── */
-function Stat({label,value,unit,trend,color,compact}) {
+const Stat = React.memo(function Stat({label,value,unit,trend,color,compact}) {
   return (
     <div style={{background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:compact?'8px':'12px',padding:compact?'10px 12px':'14px 16px',flex:compact?1:undefined,minWidth:compact?0:undefined}}>
       <div style={{fontSize:compact?'8px':'10px',textTransform:'uppercase',letterSpacing:'0.1em',color:C.textMuted,marginBottom:compact?'3px':'5px',fontFamily:'monospace'}}>{label}</div>
@@ -191,7 +189,7 @@ function Stat({label,value,unit,trend,color,compact}) {
       {trend&&<div style={{marginTop:'2px',fontSize:compact?'9px':'11px',color:trend.startsWith('-')?C.positive:C.warning,fontFamily:'monospace'}}>{trend}</div>}
     </div>
   );
-}
+});
 
 /* ═══ LOGIN ═══ */
 function LoginScreen({ onLogin }) {
@@ -309,6 +307,9 @@ function MainApp({ role }) {
   const [hoveredSession,setHoveredSession]=useState(null);
   const ivRef=useRef(null);
   const saveRef=useRef(null);
+  const view1Ref=useRef(null);
+  const view2Ref=useRef(null);
+  const containerRef=useRef(null);
   const {isMobile,isTablet,isDesktop}=useResponsive();
   const isVertical = !isDesktop; // mobile & tablet: layout vertical (3D top, panel bottom)
 
@@ -328,16 +329,14 @@ function MainApp({ role }) {
   const onBoundsCalculated=useCallback((bounds)=>{setTumorPos(bounds.tumorPosition);},[]);
 
   const compactStats = isVertical;
-  const glConfig=useMemo(()=>({antialias:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}),[]);
+  const glConfig=useMemo(()=>({antialias:true,alpha:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}),[]);
   const dprConfig=useMemo(()=>[1,isMobile?1:1.5],[isMobile]);
-  const camMain=useMemo(()=>({position:[0,1.5,isMobile?6.5:5.2],fov:isMobile?42:38}),[isMobile]);
-  const camTumor=useMemo(()=>({position:[0,0,0.25],fov:35}),[]);
 
   return (
-    <div style={{width:'100vw',height:'100vh',background:C.bg,color:C.text,fontFamily:"-apple-system,'Segoe UI',sans-serif",display:'flex',flexDirection:'column',overflow:'hidden'}}>
+    <div ref={containerRef} style={{width:'100vw',height:'100vh',background:C.bg,color:C.text,fontFamily:"-apple-system,'Segoe UI',sans-serif",display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
       {/* ── Header ── */}
-      <header style={{padding:isMobile?'10px 14px':'12px 20px',borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'rgba(5,10,18,0.85)',backdropFilter:'blur(12px)',zIndex:10}}>
+      <header style={{padding:isMobile?'10px 14px':'12px 20px',borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'rgba(5,10,18,0.85)',zIndex:10}}>
         <div style={{display:'flex',alignItems:'center',gap:isMobile?'8px':'10px'}}>
           <div style={{width:'32px',height:'32px',borderRadius:'8px',background:`linear-gradient(135deg,${C.accent},#4a90d9)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',color:'#fff'}}>◎</div>
           <div>
@@ -365,7 +364,7 @@ function MainApp({ role }) {
           <div style={{flex:1,minHeight:0,display:'flex',flexDirection:isMobile?'column':'row'}}>
 
             {/* Panel 1 — Corps + Tumeur */}
-            <div style={{flex:1,minHeight:0,position:'relative',borderRight:isMobile?'none':`1px solid ${C.border}`,borderBottom:isMobile?`1px solid ${C.border}`:'none'}}>
+            <div ref={view1Ref} style={{flex:1,minHeight:0,position:'relative',background:C.bg,borderRight:isMobile?'none':`1px solid ${C.border}`,borderBottom:isMobile?`1px solid ${C.border}`:'none'}}>
               <div style={{position:'absolute',top:'8px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'3px 10px',borderRadius:'6px',background:'rgba(5,10,18,0.75)',border:`1px solid ${C.border}`,fontSize:'9px',color:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
                 Corps + Tumeur
               </div>
@@ -376,38 +375,16 @@ function MainApp({ role }) {
                   </div>
                 ))}
               </div>
-              <Canvas
-                camera={camMain}
-                gl={glConfig}
-                dpr={dprConfig}
-                style={{background:C.bg}}
-                performance={{min:0.5}}
-              >
-                <Suspense fallback={null}>
-                  <SceneContent tumorScale={d.size} glbUrl={glbUrl} tumorPosition={tumorPos} onBoundsCalculated={onBoundsCalculated}/>
-                </Suspense>
-              </Canvas>
             </div>
 
             {/* Panel 2 — Tumeur seule */}
-            <div style={{flex:1,minHeight:0,position:'relative'}}>
+            <div ref={view2Ref} style={{flex:1,minHeight:0,position:'relative',background:C.bg}}>
               <div style={{position:'absolute',top:'8px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'3px 10px',borderRadius:'6px',background:'rgba(5,10,18,0.75)',border:`1px solid ${C.border}`,fontSize:'9px',color:C.textMuted,fontFamily:'monospace',whiteSpace:'nowrap'}}>
                 Tumeur isolée
               </div>
               <div style={{position:'absolute',bottom:'10px',left:'50%',transform:'translateX(-50%)',zIndex:10,padding:'4px 12px',borderRadius:'8px',background:'rgba(5,10,18,0.8)',border:`1px solid rgba(239,68,68,0.3)`,fontSize:'10px',color:C.tumor,fontFamily:'monospace',whiteSpace:'nowrap'}}>
                 Ø {dia} mm · {vol} cm³
               </div>
-              <Canvas
-                camera={camTumor}
-                gl={glConfig}
-                dpr={dprConfig}
-                style={{background:C.bg}}
-                performance={{min:0.5}}
-              >
-                <Suspense fallback={null}>
-                  <TumorOnlyScene tumorScale={d.size}/>
-                </Suspense>
-              </Canvas>
             </div>
 
           </div>
@@ -568,6 +545,29 @@ function MainApp({ role }) {
           )}
         </div>
       </div>
+      {/* ── Canvas unique partagé ── */}
+      <Canvas
+        eventSource={containerRef}
+        eventPrefix="client"
+        gl={glConfig}
+        dpr={dprConfig}
+        style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',pointerEvents:'none'}}
+        performance={{min:0.5}}
+      >
+        <View track={view1Ref}>
+          <Suspense fallback={null}>
+            <PerspectiveCamera makeDefault position={[0,1.5,isMobile?6.5:5.2]} fov={isMobile?42:38} />
+            <SceneContent tumorScale={d.size} glbUrl={glbUrl} tumorPosition={tumorPos} onBoundsCalculated={onBoundsCalculated}/>
+          </Suspense>
+        </View>
+        <View track={view2Ref}>
+          <Suspense fallback={null}>
+            <PerspectiveCamera makeDefault position={[0,0,0.25]} fov={35} />
+            <TumorOnlyScene tumorScale={d.size}/>
+          </Suspense>
+        </View>
+        <Preload all />
+      </Canvas>
     </div>
   );
 }
@@ -577,5 +577,5 @@ export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
   const [role, setRole] = useState('patient');
   if (!authenticated) return <LoginScreen onLogin={(r) => { setRole(r); setAuthenticated(true); }} />;
-  return <MainApp role={role} />;
+    return <MainApp role={role} />;
 }
