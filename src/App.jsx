@@ -51,6 +51,8 @@ function Tumor({ scale }) {
     return geo;
   }, []);
 
+  useEffect(() => () => { tumorGeo.dispose(); }, [tumorGeo]);
+
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
     const t = clock.getElapsedTime();
@@ -73,8 +75,10 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
 
   useEffect(() => {
     if (!glbUrl) return;
+    let cancelled = false;
     const loader = new GLTFLoader();
     loader.load(glbUrl, (gltf) => {
+      if (cancelled) return;
       const root = gltf.scene;
 
       // Bounds before transform
@@ -123,7 +127,7 @@ function LoadedModel({ glbUrl, onBoundsCalculated }) {
       }
     }, undefined, (err) => console.error('GLB error:', err));
 
-    return () => {};
+    return () => { cancelled = true; };
   }, [glbUrl, onBoundsCalculated]);
 
   if (!model) return null;
