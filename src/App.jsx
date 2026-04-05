@@ -305,6 +305,14 @@ function MainApp({ role }) {
     catch{return Array(TUMOR_DATA.length).fill('');}
   });
   const [hoveredSession,setHoveredSession]=useState(null);
+  const [publishedSessions, setPublishedSessions] = useState(() => {
+    try {
+      const s = localStorage.getItem('rv3d_published');
+      return s ? JSON.parse(s) : TUMOR_DATA.map((_, i) => i === 0);
+    } catch {
+      return TUMOR_DATA.map((_, i) => i === 0);
+    }
+  });
   const ivRef=useRef(null);
   const saveRef=useRef(null);
   const view1Ref=useRef(null);
@@ -313,20 +321,42 @@ function MainApp({ role }) {
   const {isMobile,isTablet,isDesktop}=useResponsive();
   const isVertical = !isDesktop; // mobile & tablet: layout vertical (3D top, panel bottom)
 
-  const {d,vol,red,dia,pct}=useMemo(()=>{
+  const {d,vol,red,dia,pct,publishedIndices,patientStepIdx}=useMemo(()=>{
     const d=TUMOR_DATA[step];
-    return {d,vol:(4.2*d.size).toFixed(1),red:((1-d.size)*100).toFixed(0),dia:(32*d.size).toFixed(0),pct:(step/(TUMOR_DATA.length-1))*100};
-  },[step]);
+    const publishedIndices=TUMOR_DATA.map((_,i)=>i).filter(i=>publishedSessions[i]);
+    const patientStepIdx=publishedIndices.indexOf(step);
+    const pct=isDoctor
+      ?(step/(TUMOR_DATA.length-1))*100
+      :publishedIndices.length>1?(patientStepIdx/(publishedIndices.length-1))*100:0;
+    return {d,vol:(4.2*d.size).toFixed(1),red:((1-d.size)*100).toFixed(0),dia:(32*d.size).toFixed(0),pct,publishedIndices,patientStepIdx};
+  },[step,publishedSessions,isDoctor]);
 
   const toggle=()=>{
     if(playing){clearInterval(ivRef.current);setPlaying(false);return;}
     clearInterval(ivRef.current);
-    setPlaying(true);setStep(0);let s=0;
-    ivRef.current=setInterval(()=>{s++;if(s>=TUMOR_DATA.length){clearInterval(ivRef.current);setPlaying(false);return;}setStep(s);},1800);
+    const sessions=isDoctor?TUMOR_DATA.map((_,i)=>i):TUMOR_DATA.map((_,i)=>i).filter(i=>publishedSessions[i]);
+    if(sessions.length===0)return;
+    setPlaying(true);setStep(sessions[0]);let idx=0;
+    ivRef.current=setInterval(()=>{idx++;if(idx>=sessions.length){clearInterval(ivRef.current);setPlaying(false);return;}setStep(sessions[idx]);},1800);
   };
   useEffect(()=>()=>{clearInterval(ivRef.current);clearTimeout(saveRef.current);},[]);
 
+  useEffect(()=>{
+    if(!isDoctor&&!publishedSessions[step]){
+      const first=publishedSessions.indexOf(true);
+      if(first>=0)setStep(first);
+    }
+  },[isDoctor,publishedSessions,step]);
+
   const onBoundsCalculated=useCallback((bounds)=>{setTumorPos(bounds.tumorPosition);},[]);
+
+  const togglePublish=useCallback((i)=>{
+    setPublishedSessions(prev=>{
+      const n=[...prev];n[i]=!n[i];
+      try{localStorage.setItem('rv3d_published',JSON.stringify(n));}catch{}
+      return n;
+    });
+  },[]);
 
   const compactStats = isVertical;
   const glConfig=useMemo(()=>({antialias:true,alpha:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.4,powerPreference:'high-performance'}),[]);
@@ -396,17 +426,21 @@ function MainApp({ role }) {
                 {playing?'⏸':'▶'}
               </button>
               <div style={{flex:1}}>
-                <input type="range" min={0} max={TUMOR_DATA.length-1} value={step}
-                  onChange={(e)=>{setStep(Number(e.target.value));if(playing){clearInterval(ivRef.current);setPlaying(false);}}}
+                <input type="range"
+                  min={0}
+                  max={isDoctor?TUMOR_DATA.length-1:Math.max(0,publishedIndices.length-1)}
+                  value={isDoctor?step:Math.max(0,patientStepIdx)}
+                  onChange={(e)=>{const n=Number(e.target.value);const actual=isDoctor?n:publishedIndices[n];if(actual===undefined)return;setStep(actual);if(playing){clearInterval(ivRef.current);setPlaying(false);}}}
                   style={{width:'100%',height:'5px',appearance:'none',background:`linear-gradient(to right,${C.accent} ${pct}%,${C.sliderTrack} ${pct}%)`,borderRadius:'3px',outline:'none',cursor:'pointer'}}
                 />
                 <div style={{display:'flex',justifyContent:'space-between',marginTop:'6px'}}>
-                  {TUMOR_DATA.map((item,i)=>(
+                  {TUMOR_DATA.map((item,i)=>{
+                    if(!isDoctor&&!publishedSessions[i])return null;
+                    return(
                     <button key={i} onClick={()=>setStep(i)}
                       onMouseEnter={()=>setHoveredSession(i)}
                       onMouseLeave={()=>setHoveredSession(null)}
                       style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',position:'relative'}}>
-                      {/* Tooltip interprétation */}
                       {hoveredSession===i && interpretations[i] && (
                         <div style={{position:'absolute',bottom:'calc(100% + 10px)',left:'50%',transform:'translateX(-50%)',width:'220px',padding:'10px 12px',borderRadius:'9px',background:C.bgCard,border:`1px solid ${isDoctor?'rgba(6,214,160,0.3)':'rgba(74,144,217,0.3)'}`,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',zIndex:200,pointerEvents:'none'}}>
                           <div style={{fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.1em',color:isDoctor?C.accent:'#4a90d9',fontFamily:'monospace',marginBottom:'5px'}}>
@@ -414,7 +448,6 @@ function MainApp({ role }) {
                           </div>
                           <div style={{fontSize:'11px',color:C.text,lineHeight:1.55}}>{interpretations[i]}</div>
                           <div style={{fontSize:'9px',color:C.textMuted,fontFamily:'monospace',marginTop:'6px'}}>{item.date} · {item.label}</div>
-                          {/* Flèche */}
                           <div style={{position:'absolute',bottom:'-5px',left:'50%',transform:'translateX(-50%)',width:'8px',height:'8px',background:C.bgCard,border:`1px solid ${isDoctor?'rgba(6,214,160,0.3)':'rgba(74,144,217,0.3)'}`,borderTop:'none',borderLeft:'none',rotate:'45deg'}}/>
                         </div>
                       )}
@@ -425,7 +458,8 @@ function MainApp({ role }) {
                         </span>
                       )}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -498,13 +532,16 @@ function MainApp({ role }) {
           <div style={{flex:1,minHeight:0,overflowY:'auto'}}>
             <div style={{fontSize:'10px',textTransform:'uppercase',color:C.textMuted,fontFamily:'monospace',marginBottom:'6px'}}>Historique</div>
             <div style={{display:'flex',flexDirection:isTablet?'row':'column',flexWrap:isTablet?'wrap':'nowrap',gap:isTablet?'4px':'0'}}>
-              {TUMOR_DATA.map((item,i)=>(
+              {TUMOR_DATA.map((item,i)=>{
+                if(!isDoctor&&!publishedSessions[i])return null;
+                return(
                 <button key={i} onClick={()=>setStep(i)} style={{display:'flex',alignItems:'center',gap:isMobile?'6px':'9px',padding:isMobile?'5px 8px':'6px 9px',borderRadius:'7px',border:'none',background:i===step?C.accentDim:'transparent',cursor:'pointer',flex:isTablet?'1 1 auto':'unset',minWidth:isTablet?'140px':'unset',textAlign:'left',marginBottom:isTablet?'0':'2px'}}>
                   <div style={{width:'6px',height:'6px',borderRadius:'50%',background:i<=step?C.accent:C.sliderTrack,flexShrink:0}}/>
                   <span style={{flex:1,fontSize:'11px',color:i===step?C.text:C.textMuted,fontWeight:i===step?600:400}}>{item.label}</span>
                   <span style={{fontSize:'10px',fontFamily:'monospace',color:i===step?C.accent:C.textMuted}}>{(item.size*100).toFixed(0)}%</span>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -517,6 +554,7 @@ function MainApp({ role }) {
               {interpretations[step]&&!isDoctor&&<span style={{marginLeft:'auto',fontSize:'8px',color:'rgba(74,144,217,0.7)',fontFamily:'monospace'}}>survol timeline</span>}
             </div>
             {isDoctor ? (
+              <>
               <textarea
                 value={interpretations[step]}
                 onChange={e=>{const n=[...interpretations];n[step]=e.target.value;setInterpretations(n);clearTimeout(saveRef.current);saveRef.current=setTimeout(()=>{try{localStorage.setItem('rv3d_interpretations',JSON.stringify(n));}catch{}},500);}}
@@ -526,6 +564,13 @@ function MainApp({ role }) {
                 onFocus={e=>e.target.style.borderColor=C.accent}
                 onBlur={e=>e.target.style.borderColor=interpretations[step]?'rgba(6,214,160,0.35)':C.border}
               />
+              <button
+                onClick={()=>togglePublish(step)}
+                style={{marginTop:'8px',padding:'7px 12px',borderRadius:'7px',border:`1px solid ${publishedSessions[step]?'rgba(6,214,160,0.35)':C.border}`,background:publishedSessions[step]?C.accentDim:'transparent',color:publishedSessions[step]?C.accent:C.textMuted,fontSize:'10px',fontFamily:'monospace',cursor:'pointer',width:'100%',display:'flex',alignItems:'center',gap:'6px',justifyContent:'center',transition:'all 0.2s'}}
+              >
+                {publishedSessions[step]?'◉ Visible par le patient':'○ Non visible par le patient'}
+              </button>
+              </>
             ) : interpretations[step] ? (
               <div style={{padding:'10px 12px',borderRadius:'8px',background:'rgba(74,144,217,0.06)',border:'1px solid rgba(74,144,217,0.2)',fontSize:'11px',color:C.text,lineHeight:1.6,fontFamily:'monospace'}}>
                 {interpretations[step]}
